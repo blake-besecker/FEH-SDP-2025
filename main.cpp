@@ -24,7 +24,7 @@ FEHImage selector("images/selector.png");
 
 class Game {
 private:
-float startTime, duration = 30, difficulty;
+float startTime, duration = 30, difficulty = 1;
 int hp = 100;
 public:
     Game() {
@@ -42,33 +42,35 @@ public:
         int round = 1;
         int fails = 0;
         float round_time;
-        LCD.Clear();
-        update(true);
-        line.Draw(80,190);
+        
+        
+        
         while (round <= 3) {
 
             round_time = TimeNow();
             selector_place = 100;
             zone_place = int(120 + (Random.RandInt()/32767.0) * 60);
-            zone.Draw(zone_place,190);
-            while (!Keyboard.isPressed(KEY_SPACE) && TimeNow()-round_time <= 10.0) {
-                
+            
+            while (!Keyboard.isPressed(KEY_SPACE) && selector_place<240) {
+                LCD.Clear();
+                update(true);
+                line.Draw(80,190);
+                zone.Draw(zone_place,190);
                 selector.Draw(selector_place,180);
-                selector_place+=1;
+                selector_place+=(2*difficulty);
                 LCD.Update();
                 Sleep(0.01);
                 
             }
+            Sleep(0.1);
             if (selector_place < zone_place-20 || selector_place > zone_place+20) {
                 fails++;
             }
             round++;
         }
         LCD.Clear();
+        update(false);
         return fails*10;
-
-        
-
     }
 
     int startScreen() {
@@ -80,7 +82,6 @@ public:
         boss1.Draw(180, 130);
         LCD.Update();
         Sleep(2.0);
-        line_attack();
     }
 
     int endScreen(bool success=false) {
@@ -124,8 +125,7 @@ public:
             //boss3.Draw(0,0);
             }
         }
-
-        LCD.Update();
+        if (!inAttack) LCD.Update();
     }
 
     void mainloop() {
@@ -135,7 +135,6 @@ public:
         while (TimeNow()-startTime <= duration) {
 
             line_attack();
-            Sleep(2.0);
 
         }
 

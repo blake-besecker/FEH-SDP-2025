@@ -43,8 +43,6 @@ public:
         int fails = 0;
         float round_time;
         
-        
-        
         while (round <= 3) {
 
             round_time = TimeNow();
@@ -70,6 +68,41 @@ public:
         }
         LCD.Clear();
         update(false);
+        return fails*10;
+    }
+
+    int match_attack() {
+        int fails = 0;
+        int round = 1;
+        //sequence characters
+        char letter;
+        int choice;
+        float round_start;
+        float round_time = 10/difficulty;
+        
+        while (round <= 5) {
+            LCD.Clear();
+            choice = Random.RandInt() % 4;
+            if (choice == 1) letter = 'a';
+            if (choice == 2) letter = 's';
+            if (choice == 3) letter = 'd';
+            if (choice == 4) letter = 'f';
+            round_start = TimeNow();
+            update(true);
+            LCD.WriteAt(letter, 160, 120);
+            LCD.Update();
+            while (!Keyboard.areAnyPressed() && TimeNow()-round_start <= round_time) {
+                Sleep(0.1);
+            }
+            if (Keyboard.lastChar() != choice) fails++;
+            LCD.Clear();
+            update(true);
+            LCD.WriteAt(letter, 160, 120);
+            LCD.Update();
+            
+            Sleep(0.2);
+            round++;
+        }
         return fails*10;
     }
 
@@ -134,6 +167,8 @@ public:
         startScreen();
         while (TimeNow()-startTime <= duration) {
 
+            match_attack();
+            Sleep(2.0);
             line_attack();
 
         }

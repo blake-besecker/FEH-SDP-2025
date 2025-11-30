@@ -5,6 +5,10 @@
 #include "FEHKeyboard.h"
 //images and sprites
 //bg, player, bosses
+
+FEHImage tile("tile.png");
+FEHImage tile_danger("tile_danger.png");
+
 FEHImage background1("images/bg_1.png");
 //FEHImage background2("bg_2.png");
 //FEHImage background3("bg_3.png");
@@ -14,96 +18,14 @@ FEHImage boss1("images/boss_1.png");
 //FEHImage boss3("boss_3.png");
 
 FEHImage player1("images/player_1.png");
-//FEHImage player2("player2_2.png");
-//FEHImage player3("player_3.png");
-
-//attack images
-FEHImage line("images/line.png");
-FEHImage zone("images/zone.png");
-FEHImage selector("images/selector.png");
 
 class Game {
 private:
-float startTime, duration = 30, difficulty = 1;
-int hp = 100;
+float startTime, duration = difficulty*3, difficulty = 1;
+int hp = 100, x, y;
 public:
     Game() {
         //constructor(may not be necessary)
-    }
-
-    int line_attack() {
-        //constructs a line on screen with a zone around it. also moves a 'selector'
-        //selector traverses the line, stopping when it gets to the end
-        //user must press space before it gets to the end AND within the zone
-        //accumulates 'fails' up to 3 (one per round)
-        //returns this value times ten so we can calculate HP loss within the loop
-        int zone_place;
-        int selector_place = 10;
-        int round = 1;
-        int fails = 0;
-        float round_time;
-        
-        while (round <= 3) {
-
-            round_time = TimeNow();
-            selector_place = 100;
-            zone_place = int(120 + (Random.RandInt()/32767.0) * 60);
-            
-            while (!Keyboard.isPressed(KEY_SPACE) && selector_place<240) {
-                LCD.Clear();
-                update(true);
-                line.Draw(80,190);
-                zone.Draw(zone_place,190);
-                selector.Draw(selector_place,180);
-                selector_place+=(2*difficulty);
-                LCD.Update();
-                Sleep(0.01);
-                
-            }
-            Sleep(0.1);
-            if (selector_place < zone_place-20 || selector_place > zone_place+20) {
-                fails++;
-            }
-            round++;
-        }
-        LCD.Clear();
-        update(false);
-        return fails*10;
-    }
-
-    int match_attack() {
-        int fails = 0;
-        int round = 1;
-        //sequence characters
-        char letter;
-        int choice;
-        float round_start;
-        float round_time = 10/difficulty;
-        
-        while (round <= 5) {
-            LCD.Clear();
-            choice = Random.RandInt() % 4;
-            if (choice == 1) letter = 'a';
-            if (choice == 2) letter = 's';
-            if (choice == 3) letter = 'd';
-            if (choice == 4) letter = 'f';
-            round_start = TimeNow();
-            update(true);
-            LCD.WriteAt(letter, 160, 120);
-            LCD.Update();
-            while (!Keyboard.areAnyPressed() && TimeNow()-round_start <= round_time) {
-                Sleep(0.1);
-            }
-            if (Keyboard.lastChar() != choice) fails++;
-            LCD.Clear();
-            update(true);
-            LCD.WriteAt(letter, 160, 120);
-            LCD.Update();
-            
-            Sleep(0.2);
-            round++;
-        }
-        return fails*10;
     }
 
     int startScreen() {
@@ -111,10 +33,10 @@ public:
         //the beginning screen. should have an option for stats, options, etc.
         //returns difficulty (1,2,3 for easy, medium, hard)
         background1.Draw(0,0);
-        player1.Draw(120, 130);
-        boss1.Draw(180, 130);
+        player1.Draw(0, 100);
+        boss1.Draw(0, 50);
         LCD.Update();
-        Sleep(2.0);
+        Sleep(0.5);
     }
 
     int endScreen(bool success=false) {
@@ -124,13 +46,34 @@ public:
         LCD.Update();
     }
 
-    void attack() {
-        //initiate an attack. depending on the type, does a different type
+    void draw_map(int attack_type) { 
+        for (int i = 120; i<260; i+=20) {
+            for (int j = 120; j<260; j+=20) {
+                tile.Draw(i, j);
+            }
+        }
+        LCD.Update();
     }
 
-    void update(bool inAttack=false) {
+    void attack(bool danger, int attack_type) {
+        LCD.Clear();
+        draw_map();
+
+        //initiate an attack. depending on the type, does a different type. 
+        // if danger is true, then highlight tiles as in "danger".
+        // danger tiles are highlighted to signify that an attack is coming so the player can move
+        // if danger is false, then set tiles as "hurt"
+        // while player is within these tiles, decrement hp
+    }
+
+    void move(char lastKey) {
         LCD.Clear();
         float time = TimeNow()-startTime;
+        int delta_x = 0, delta_y = 0;
+        if (lastKey == 'w') delta_y = 1;
+        if (lastKey == 'a') delta_x = -1;
+        if (lastKey == 's') delta_y = -1;
+        if (lastKey == 'd') delta_x = 1;
         if (hp <= 0) {
             endScreen();
             return;
@@ -139,37 +82,48 @@ public:
         int stage;
         if (time < duration/3) {
             background1.Draw(0,0);
-            if (!inAttack) {
-            //player1.Draw(0,0);
+            //player1.Draw(x+delta_x,y+delta_y);
             //boss1.Draw(0,0);
-            }
 
         } else if (time < ((2 * duration) / 3)) {
             background1.Draw(0,0);
-            if (!inAttack) {
-            //player2.Draw(0,0);
+            //player2.Draw(x+delta_x,y+delta_y);
             //boss2.Draw(0,0);
-            }
         }
         else {
             background1.Draw(0,0);
-            if (!inAttack) {
-            //player3.Draw(0,0);
+            //player3.Draw(x+delta_x,y+delta_y);
             //boss3.Draw(0,0);
-            }
         }
-        if (!inAttack) LCD.Update();
     }
 
     void mainloop() {
         //the main loop of the game
+        int attack_progress = 0;
+        bool inAttack = false;
+        int attack_type = Random.RandInt() % 4;
         startTime = TimeNow();
         startScreen();
-        while (TimeNow()-startTime <= duration) {
 
-            match_attack();
-            Sleep(2.0);
-            line_attack();
+        while (TimeNow()-startTime <= duration) {
+            //wait for a key to be pressed and increase attack timer(1000 = 1 second passed)
+            while (!Keyboard.areAnyPressed()) {
+                if (attack_progress == 5000) {
+                    attack(true, attack_type);
+                }
+                else if (attack_progress == 7000) {
+                    attack(false, attack_type);
+                }
+                else if (attack_progress == 9000) {
+                    draw_map();
+                    attack_type = Random.RandInt() % 4;
+                    attack_progress = 0;
+                }
+                Sleep(0.001);
+                if (attack_progress < 9000) attack_progress++;
+            }
+            move(Keyboard.lastChar());
+            
 
         }
 

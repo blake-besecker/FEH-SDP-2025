@@ -1,20 +1,20 @@
-#include "FEHUtility.h"
 #include "FEHImages.h"
-#include "FEHRandom.h"
-#include "FEHLCD.h"
 #include "FEHKeyboard.h"
+#include "FEHLCD.h"
+#include "FEHRandom.h"
+#include "FEHUtility.h"
 // images and sprites
 // bg, player, bosses
 FEHImage tile("images/tile.png");
 FEHImage bad_tile("images/tile_warn.png");
 
 FEHImage background1("images/bg_1.png");
-//FEHImage background2("bg_2.png");
-//FEHImage background3("bg_3.png");
+// FEHImage background2("bg_2.png");
+// FEHImage background3("bg_3.png");
 
 FEHImage boss1("images/boss.png");
-//FEHImage boss2("boss_2.png");
-//FEHImage boss3("boss_3.png");
+// FEHImage boss2("boss_2.png");
+// FEHImage boss3("boss_3.png");
 
 FEHImage player1("images/player.png");
 
@@ -26,19 +26,19 @@ private:
   int attack_state = 0;
   int attack_progress = 0;
   int attack_type = 2;
+  bool success;
 
 public:
   Game();
-  int startScreen();
-  int endScreen(bool success);
+  int endScreen();
   void draw_map();
   void move(char lastkey);
   void mainloop();
   void menuLoop();
-  void stats();
-  void credits();
+  void statsScreen();
+  void creditsScreen();
+  void instructionsScreen();
   int stateMachine();
-  void instructions();
 };
 
 int main() {
@@ -46,145 +46,169 @@ int main() {
   // state machine active until quit case
   while (main.stateMachine() != -1) {
   }
-
   return 0;
 }
 
 Game::Game() {}
 
 void Game::draw_map() {
-  //set "bad tile" the type of tile that's bad to stand on.
-  if (attack_state == 1) bad_tile = FEHImage("images/tile_warn.png");
-  else if (attack_state == 2) bad_tile = FEHImage("images/tile_danger.png");
+  // set "bad tile" the type of tile that's bad to stand on.
+  if (attack_state == 1)
+    bad_tile = FEHImage("images/tile_warn.png");
+  else if (attack_state == 2)
+    bad_tile = FEHImage("images/tile_danger.png");
   if (attack_state > 0 && attack_type == 1) {
-    //alternating rows and columns are dangerous
-    for (int i = 100; i<140; i+=10) {
-        for (int j = 80; j<120; j+=10) {
-          if (((i/10) % 2 == 0) || ((j/10) % 2) == 0) { 
-            bad_tile.Draw(i, j);
-          }
-          else {
-            tile.Draw(i, j);
-          }
-            
+    // alternating rows and columns are dangerous
+    for (int i = 100; i < 140; i += 10) {
+      for (int j = 80; j < 120; j += 10) {
+        if (((i / 10) % 2 == 0) || ((j / 10) % 2) == 0) {
+          bad_tile.Draw(i, j);
+        } else {
+          tile.Draw(i, j);
         }
-    }
-
-  } 
-  else if (attack_state > 0 && attack_type == 2) {
-    for (int i = 100; i<140; i+=10) {
-        for (int j = 80; j<120; j+=10) {
-          if (((i/10) % 2 == 1) || ((j/10) % 2) == 1) { 
-            bad_tile.Draw(i, j);
-          }
-          else {
-            tile.Draw(i, j);
-          }
-            
-        }
-    }
-  }
-  else if (attack_state > 0 && attack_type == 3) {
-      for (int i = 100; i<140; i+=10) {
-          for (int j = 80; j<120; j+=10) {
-            if (((i/10) % 2 == 1) || ((j/10) % 2) == 1) { 
-              bad_tile.Draw(i, j);
-            }
-            else {
-              tile.Draw(i, j);
-            }
-              
-          }
       }
     }
-  else {
-    //default
-    for (int i = 100; i<140; i+=10) {
-        for (int j = 80; j<120; j+=10) {
-            tile.Draw(i, j);
+
+  } else if (attack_state > 0 && attack_type == 2) {
+    for (int i = 100; i < 140; i += 10) {
+      for (int j = 80; j < 120; j += 10) {
+        if (((i / 10) % 2 == 1) || ((j / 10) % 2) == 1) {
+          bad_tile.Draw(i, j);
+        } else {
+          tile.Draw(i, j);
         }
+      }
+    }
+  } else if (attack_state > 0 && attack_type == 3) {
+    for (int i = 100; i < 140; i += 10) {
+      for (int j = 80; j < 120; j += 10) {
+        if (((i / 10) % 2 == 1) || ((j / 10) % 2) == 1) {
+          bad_tile.Draw(i, j);
+        } else {
+          tile.Draw(i, j);
+        }
+      }
+    }
+  } else {
+    // default
+    for (int i = 100; i < 140; i += 10) {
+      for (int j = 80; j < 120; j += 10) {
+        tile.Draw(i, j);
+      }
     }
   }
-
 }
 
 void Game::move(char lastKey) {
- float time = TimeNow()-startTime;
- int delta_x = 0, delta_y = 0;
- int max_x = 140, min_x=90, max_y=120, min_y=70;
- if (lastKey == 'w') delta_y = -10;
- if (lastKey == 'a') delta_x = -10;
-    if (lastKey == 's') delta_y = 10;
-    if (lastKey == 'd') delta_x = 10;
-    if (hp <= 0) {
-        endScreen(false);
-        return;
-    }
-    if (x+delta_x < max_x && x+delta_x > min_x) x+=delta_x;
-    
-    if (y+delta_y < max_y && y+delta_y > min_y) y+=delta_y;
-    //update visual elements(background, boss sprite, player, sprite, music, etc)
-    if (time < duration/3) {
-        background1.Draw(0,0);
-        draw_map();
-        player1.Draw(x,y);
-        boss1.Draw(115,20);
-    } else if (time < ((2 * duration) / 3)) {
-        background1.Draw(0,0);
-        draw_map();
-        player1.Draw(x,y);
-        boss1.Draw(115,20);
-    }
-    else {
-        background1.Draw(0,0);
-        draw_map();
-        player1.Draw(x,y);
-        boss1.Draw(115,20);
-    }
-    //check for damage
+  float time = TimeNow() - startTime;
+  int delta_x = 0, delta_y = 0;
+  int max_x = 140, min_x = 90, max_y = 120, min_y = 70;
+  if (lastKey == 'w')
+    delta_y = -10;
+  if (lastKey == 'a')
+    delta_x = -10;
+  if (lastKey == 's')
+    delta_y = 10;
+  if (lastKey == 'd')
+    delta_x = 10;
+  if (hp <= 0) {
+    success = false;
+    state = 5;
+    return;
+  }
+  if (x + delta_x < max_x && x + delta_x > min_x)
+    x += delta_x;
 
+  if (y + delta_y < max_y && y + delta_y > min_y)
+    y += delta_y;
+  // update visual elements(background, boss sprite, player, sprite, music, etc)
+  if (time < duration / 3) {
+    background1.Draw(0, 0);
+    draw_map();
+    player1.Draw(x, y);
+    boss1.Draw(115, 20);
+  } else if (time < ((2 * duration) / 3)) {
+    background1.Draw(0, 0);
+    draw_map();
+    player1.Draw(x, y);
+    boss1.Draw(115, 20);
+  } else {
+    background1.Draw(0, 0);
+    draw_map();
+    player1.Draw(x, y);
+    boss1.Draw(115, 20);
+  }
+  // check for damage
 }
 
-int Game::endScreen(bool success = false) {
-  LCD.Clear();
-  state = 0;
+int Game::endScreen() {
+
   // the end screen. should offer to play again. returns 1 to play again, and
   // 0 to close takes in a success variable(true is a win, false is a lose)
+  LCD.Clear();
+  FEHIcon::Icon end[2];
+  char endLabels[2][20] = {"RESTART", "QUIT"};
+  FEHIcon::DrawIconArray(end, 1, 2, 100, 10, 60, 60, endLabels, PURPLE, BLUE);
+  LCD.SetFontColor(BLACK);
+  LCD.DrawRectangle(60, 100, 100, 130);
+  LCD.DrawRectangle(160, 100, 100, 130);
+  float x, y;
+  while (!LCD.Touch(&x, &y)) {
+    if (end[0].Pressed(x, y, 0)) {
+      end[0].Select();
+      end[1].Deselect();
+    } else if (end[1].Pressed(x, y, 0)) {
+      end[0].Deselect();
+      end[1].Select();
+    } else {
+      end[0].Deselect();
+      end[1].Deselect();
+    }
+  }
+  while (LCD.Touch(&x, &y)) {
+    if (end[0].Pressed(x, y, 0)) {
+      end[0].Select();
+      state = 0;
+    } else if (end[1].Pressed(x, y, 0)) {
+      end[1].Select();
+      state = 6;
+    }
+  }
   LCD.Update();
 }
 
 void Game::mainloop() {
-    //the main loop of the game
-    //attack progress is the progress towards an attack happening. increases by 1000 a second
-    //attack state. 0, nothing happens. 1, warning. 2, attack is going on
-    //attack type, 1-4. each one does something different
+  // the main loop of the game
+  // attack progress is the progress towards an attack happening. increases by
+  // 1000 a second attack state. 0, nothing happens. 1, warning. 2, attack is
+  // going on attack type, 1-4. each one does something different
 
   startTime = TimeNow();
   while (TimeNow() - startTime <= duration) {
-      LCD.Clear();
+    LCD.Clear();
 
-      // increment attack progress based on elapsed time
-      //cycles every 5 seconds
-      attack_progress++;
-      if (attack_progress >= 100) {
-          attack_progress = 0;
-          attack_state++;
-          if (attack_state > 2) {
-              attack_state = 0;
-              attack_type = Random.RandInt() % 4;
-          }
+    // increment attack progress based on elapsed time
+    // cycles every 5 seconds
+    attack_progress++;
+    if (attack_progress >= 100) {
+      attack_progress = 0;
+      attack_state++;
+      if (attack_state > 2) {
+        attack_state = 0;
+        attack_type = Random.RandInt() % 4;
       }
+    }
 
-      char lastKey = 'n';
-      if (Keyboard.areAnyPressed()) lastKey = Keyboard.lastChar();
-      move(lastKey);
+    char lastKey = 'n';
+    if (Keyboard.areAnyPressed())
+      lastKey = Keyboard.lastChar();
+    move(lastKey);
 
-      LCD.Update();
-      Sleep(0.01); 
+    LCD.Update();
+    Sleep(0.01);
   }
-
-
-    endScreen(true);
+  success = true;
+  state = 5;
 }
 
 void Game::menuLoop() {
@@ -196,65 +220,91 @@ void Game::menuLoop() {
   // draw the menu in a 2 by 2 array with top and bottom
   // margins of 10 and left and right margins of 5
   // with the menu labels, gold borders, and green text
-  FEHIcon::DrawIconArray(menu, 2, 2, 10, 10, 5, 5, menu_labels, GOLD, GREEN);
+  FEHIcon::DrawIconArray(menu, 2, 2, 10, 10, 5, 5, menu_labels, PURPLE, BLUE);
   float x, y;
   while (!LCD.Touch(&x, &y)) {
     if (Keyboard.isPressed(KEY_ESCAPE)) {
+      LCD.Clear(BLACK);
+      LCD.SetFontColor(PURPLE);
       LCD.WriteLine("Exiting...");
-      state = 5;
+      state = 6;
       Sleep(0.25);
       break;
+    }
+    if (menu[0].Pressed(x, y, 0)) {
+      menu[0].Select();
+      menu[1].Deselect();
+      menu[2].Deselect();
+      menu[3].Deselect();
+    } else if (menu[1].Pressed(x, y, 0)) {
+      menu[1].Select();
+      menu[0].Deselect();
+      menu[2].Deselect();
+      menu[3].Deselect();
+    } else if (menu[2].Pressed(x, y, 0)) {
+      menu[2].Select();
+      menu[0].Deselect();
+      menu[1].Deselect();
+      menu[3].Deselect();
+    } else if (menu[3].Pressed(x, y, 0)) {
+      menu[3].Select();
+      menu[0].Deselect();
+      menu[1].Deselect();
+      menu[2].Deselect();
     }
   }
   while (LCD.Touch(&x, &y)) {
     // check for each button being pressed and update state acordingly
-    // Also std::cout are for debugging
     if (menu[0].Pressed(x, y, 0)) {
       menu[0].Select();
       menu[1].Deselect();
       menu[2].Deselect();
       menu[3].Deselect();
       state = 1;
-      std::cout << state << "\n";
     } else if (menu[1].Pressed(x, y, 0)) {
       menu[1].Select();
       menu[0].Deselect();
       menu[2].Deselect();
       menu[3].Deselect();
       state = 2;
-      std::cout << state << "\n";
     } else if (menu[2].Pressed(x, y, 0)) {
       menu[2].Select();
       menu[0].Deselect();
       menu[1].Deselect();
       menu[3].Deselect();
       state = 3;
-      std::cout << state << "\n";
     } else if (menu[3].Pressed(x, y, 0)) {
       menu[3].Select();
       menu[0].Deselect();
       menu[1].Deselect();
       menu[2].Deselect();
       state = 4;
-      std::cout << state << "\n";
     }
     LCD.Update();
   }
 }
 
-void Game::stats() {
-  // basic new screen
+void Game::statsScreen() {
+  // basic stats screen
   LCD.Clear();
   FEHIcon::Icon backButton;
-  backButton.SetProperties("Back", 15, 30, 80, 80, SCARLET, GRAY);
+  backButton.SetProperties("Back", 15, 30, 80, 80, PURPLE, BLUE);
   backButton.Draw();
   LCD.WriteLine("Stats");
   LCD.SetFontScale(0.5);
-  LCD.WriteAt("Runs: 0\nWins: 0\nTotal play time: 0", 100, 20);
+  LCD.SetFontColor(WHITE);
+  LCD.WriteAt("Runs: 0", 100, 20);
+  LCD.WriteAt("Wins: 0", 100, 30);
+  LCD.WriteAt("Total play time: 0", 100, 40);
   LCD.SetFontScale(1.0);
   LCD.Update();
   float x, y;
   while (!LCD.Touch(&x, &y)) {
+    if (backButton.Pressed(x, y, 0)) {
+      backButton.Select();
+    } else {
+      backButton.Deselect();
+    }
   }
   while (LCD.Touch(&x, &y)) {
     if (backButton.Pressed(x, y, 0)) {
@@ -263,14 +313,15 @@ void Game::stats() {
   }
 }
 
-void Game::credits() {
+void Game::creditsScreen() {
   // basic credits screen
   LCD.Clear();
   FEHIcon::Icon backButton;
-  backButton.SetProperties("Back", 15, 30, 80, 80, SCARLET, GRAY);
+  backButton.SetProperties("Back", 15, 30, 80, 80, PURPLE, BLUE);
   backButton.Draw();
   LCD.WriteLine("Credits");
   LCD.SetFontScale(0.5);
+  LCD.SetFontColor(WHITE);
   LCD.WriteAt("Made by", 100, 20);
   LCD.WriteAt("Aaron Bernys and Blake Besecker", 100, 30);
   LCD.WriteAt("Inspiration:", 100, 40);
@@ -279,6 +330,11 @@ void Game::credits() {
   LCD.Update();
   float x, y;
   while (!LCD.Touch(&x, &y)) {
+    if (backButton.Pressed(x, y, 0)) {
+      backButton.Select();
+    } else {
+      backButton.Deselect();
+    }
   }
   while (LCD.Touch(&x, &y)) {
     if (backButton.Pressed(x, y, 0)) {
@@ -287,14 +343,15 @@ void Game::credits() {
   }
 }
 
-void Game::instructions() {
+void Game::instructionsScreen() {
   // basic instructions screen
   LCD.Clear();
   FEHIcon::Icon backButton;
-  backButton.SetProperties("Back", 15, 30, 80, 80, SCARLET, GRAY);
+  backButton.SetProperties("Back", 15, 30, 80, 80, PURPLE, BLUE);
   backButton.Draw();
   LCD.WriteLine("Instructions");
   LCD.SetFontScale(0.5);
+  LCD.SetFontColor(WHITE);
   LCD.WriteAt("Use the arrow keys", 100, 20);
   LCD.WriteAt("or wasd to move ", 100, 30);
   LCD.WriteAt("around and avoid attacks", 100, 40);
@@ -305,6 +362,11 @@ void Game::instructions() {
   LCD.Update();
   float x, y;
   while (!LCD.Touch(&x, &y)) {
+    if (backButton.Pressed(x, y, 0)) {
+      backButton.Select();
+    } else {
+      backButton.Deselect();
+    }
   }
   while (LCD.Touch(&x, &y)) {
     if (backButton.Pressed(x, y, 0)) {
@@ -326,18 +388,22 @@ int Game::stateMachine() {
     break;
   case 2: // stats menu
     std::cout << "CASE 2: STATS" << "\n";
-    stats();
+    statsScreen();
     break;
   case 3: // credits
     std::cout << "CASE 3: CREDITS" << "\n";
-    credits();
+    creditsScreen();
     break;
-  case 4:
+  case 4: // instructions
     std::cout << "CASE 4: INSTRUCTIONS" << "\n";
-    instructions();
+    instructionsScreen();
     break;
-  case 5: // quit
-    std::cout << "CASE 5: QUIT" << "\n";
+  case 5: // end screen
+    std::cout << "CASE 5: END" << "\n";
+    endScreen();
+    break;
+  case 6: // quit
+    std::cout << "CASE 6: QUIT" << "\n";
     return -1;
     break;
   }

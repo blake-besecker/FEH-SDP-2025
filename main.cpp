@@ -5,37 +5,40 @@
 #include "FEHKeyboard.h"
 // images and sprites
 // bg, player, bosses
-FEHImage tile("tile.png");
-FEHImage tile_danger("tile_danger.png");
+FEHImage tile("images/tile.png");
+FEHImage bad_tile("images/tile_warn.png");
 
 FEHImage background1("images/bg_1.png");
 //FEHImage background2("bg_2.png");
 //FEHImage background3("bg_3.png");
 
-FEHImage boss1("images/boss_1.png");
+FEHImage boss1("images/boss.png");
 //FEHImage boss2("boss_2.png");
 //FEHImage boss3("boss_3.png");
 
-FEHImage player1("images/player_1.png");
+FEHImage player1("images/player.png");
 
 class Game {
 private:
-  float startTime, duration = 30, difficulty = 1;
+  float startTime, duration = 10, difficulty = 1;
   int hp = 100, state = 0;
+  int x = 100, y = 80;
+  int attack_state = 0;
+  int attack_progress = 0;
+  int attack_type = 2;
 
 public:
   Game();
   int startScreen();
   int endScreen(bool success);
-  void attack();
-  void draw_map(int attack_type);
-  void update(bool inAttack);
+  void draw_map();
   void move(char lastkey);
   void mainloop();
   void menuLoop();
   void stats();
   void credits();
   int stateMachine();
+  void instructions();
 };
 
 int main() {
@@ -49,43 +52,97 @@ int main() {
 
 Game::Game() {}
 
-void Game::draw_map(int attack_type) { 
-    for (int i = 120; i<260; i+=20) {
-        for (int j = 120; j<260; j+=20) {
+void Game::draw_map() {
+  //set "bad tile" the type of tile that's bad to stand on.
+  if (attack_state == 1) bad_tile = FEHImage("images/tile_warn.png");
+  else if (attack_state == 2) bad_tile = FEHImage("images/tile_danger.png");
+  if (attack_state > 0 && attack_type == 1) {
+    //alternating rows and columns are dangerous
+    for (int i = 100; i<140; i+=10) {
+        for (int j = 80; j<120; j+=10) {
+          if (((i/10) % 2 == 0) || ((j/10) % 2) == 0) { 
+            bad_tile.Draw(i, j);
+          }
+          else {
+            tile.Draw(i, j);
+          }
+            
+        }
+    }
+
+  } 
+  else if (attack_state > 0 && attack_type == 2) {
+    for (int i = 100; i<140; i+=10) {
+        for (int j = 80; j<120; j+=10) {
+          if (((i/10) % 2 == 1) || ((j/10) % 2) == 1) { 
+            bad_tile.Draw(i, j);
+          }
+          else {
+            tile.Draw(i, j);
+          }
+            
+        }
+    }
+  }
+  else if (attack_state > 0 && attack_type == 3) {
+      for (int i = 100; i<140; i+=10) {
+          for (int j = 80; j<120; j+=10) {
+            if (((i/10) % 2 == 1) || ((j/10) % 2) == 1) { 
+              bad_tile.Draw(i, j);
+            }
+            else {
+              tile.Draw(i, j);
+            }
+              
+          }
+      }
+    }
+  else {
+    //default
+    for (int i = 100; i<140; i+=10) {
+        for (int j = 80; j<120; j+=10) {
             tile.Draw(i, j);
         }
     }
-    LCD.Update();
+  }
+
 }
 
 void Game::move(char lastKey) {
-  LCD.Clear();
  float time = TimeNow()-startTime;
  int delta_x = 0, delta_y = 0;
- if (lastKey == 'w') delta_y = 1;
- if (lastKey == 'a') delta_x = -1;
-    if (lastKey == 's') delta_y = -1;
-    if (lastKey == 'd') delta_x = 1;
+ int max_x = 140, min_x=90, max_y=120, min_y=70;
+ if (lastKey == 'w') delta_y = -10;
+ if (lastKey == 'a') delta_x = -10;
+    if (lastKey == 's') delta_y = 10;
+    if (lastKey == 'd') delta_x = 10;
     if (hp <= 0) {
-        endScreen();
+        endScreen(false);
         return;
     }
+    if (x+delta_x < max_x && x+delta_x > min_x) x+=delta_x;
+    
+    if (y+delta_y < max_y && y+delta_y > min_y) y+=delta_y;
     //update visual elements(background, boss sprite, player, sprite, music, etc)
-    int stage;
     if (time < duration/3) {
         background1.Draw(0,0);
-        //player1.Draw(x+delta_x,y+delta_y);
-        //boss1.Draw(0,0);
+        draw_map();
+        player1.Draw(x,y);
+        boss1.Draw(115,20);
     } else if (time < ((2 * duration) / 3)) {
         background1.Draw(0,0);
-        //player2.Draw(x+delta_x,y+delta_y);
-        //boss2.Draw(0,0);
+        draw_map();
+        player1.Draw(x,y);
+        boss1.Draw(115,20);
     }
     else {
         background1.Draw(0,0);
-        //player3.Draw(x+delta_x,y+delta_y);
-        //boss3.Draw(0,0);
+        draw_map();
+        player1.Draw(x,y);
+        boss1.Draw(115,20);
     }
+    //check for damage
+
 }
 
 int Game::endScreen(bool success = false) {
@@ -96,48 +153,38 @@ int Game::endScreen(bool success = false) {
   LCD.Update();
 }
 
-void Game::attack(bool danger, int attack_type) {
-   LCD.Clear();
-    draw_map();
-
-        //initiate an attack. depending on the type, does a different type. 
-        // if danger is true, then highlight tiles as in "danger".
-        // danger tiles are highlighted to signify that an attack is coming so the player can move
-        // if danger is false, then set tiles as "hurt"
-        // while player is within these tiles, decrement hp
-}
-
 void Game::mainloop() {
     //the main loop of the game
-    int attack_progress = 0;
-    bool inAttack = false;
-    int attack_type = Random.RandInt() % 4;
-    startTime = TimeNow();
-    startScreen();
+    //attack progress is the progress towards an attack happening. increases by 1000 a second
+    //attack state. 0, nothing happens. 1, warning. 2, attack is going on
+    //attack type, 1-4. each one does something different
 
-    while (TimeNow()-startTime <= duration) {
-            //wait for a key to be pressed and increase attack timer(1000 = 1 second passed)
-        while (!Keyboard.areAnyPressed()) {
-            if (attack_progress == 5000) {
-                attack(true, attack_type);
-            }
-            else if (attack_progress == 7000) {
-                attack(false, attack_type);
-            }
-            else if (attack_progress == 9000) {
-                draw_map();
-                attack_type = Random.RandInt() % 4;
-                attack_progress = 0;
-            }
-            Sleep(0.001);
-            if (attack_progress < 9000) attack_progress++;
-        }
-        move(Keyboard.lastChar());
-            
+  startTime = TimeNow();
+  while (TimeNow() - startTime <= duration) {
+      LCD.Clear();
 
-    }
+      // increment attack progress based on elapsed time
+      //cycles every 5 seconds
+      attack_progress++;
+      if (attack_progress >= 100) {
+          attack_progress = 0;
+          attack_state++;
+          if (attack_state > 2) {
+              attack_state = 0;
+              attack_type = Random.RandInt() % 4;
+          }
+      }
 
-    //endScreen(true);
+      char lastKey = 'n';
+      if (Keyboard.areAnyPressed()) lastKey = Keyboard.lastChar();
+      move(lastKey);
+
+      LCD.Update();
+      Sleep(0.01); 
+  }
+
+
+    endScreen(true);
 }
 
 void Game::menuLoop() {
@@ -145,15 +192,19 @@ void Game::menuLoop() {
   // declare an array of four icons called menu
   FEHIcon::Icon menu[4];
   // define the four menu labels
-  char menu_labels[4][20] = {"START", "STATS", "CREDITS", "QUIT"};
-
+  char menu_labels[4][20] = {"START", "STATS", "CREDITS", "INSTRUCTIONS"};
   // draw the menu in a 2 by 2 array with top and bottom
   // margins of 10 and left and right margins of 5
   // with the menu labels, gold borders, and green text
   FEHIcon::DrawIconArray(menu, 2, 2, 10, 10, 5, 5, menu_labels, GOLD, GREEN);
-
   float x, y;
   while (!LCD.Touch(&x, &y)) {
+    if (Keyboard.isPressed(KEY_ESCAPE)) {
+      LCD.WriteLine("Exiting...");
+      state = 5;
+      Sleep(0.25);
+      break;
+    }
   }
   while (LCD.Touch(&x, &y)) {
     // check for each button being pressed and update state acordingly
@@ -194,12 +245,13 @@ void Game::menuLoop() {
 void Game::stats() {
   // basic new screen
   LCD.Clear();
-  LCD.Write("Stats"); // for some reason this line only is written when you
-                      // click anywhere but the button. also moves if you click
-                      // multiple times
   FEHIcon::Icon backButton;
-  backButton.SetProperties("Back", 120, 80, 80, 80, SCARLET, GRAY);
+  backButton.SetProperties("Back", 15, 30, 80, 80, SCARLET, GRAY);
   backButton.Draw();
+  LCD.WriteLine("Stats");
+  LCD.SetFontScale(0.5);
+  LCD.WriteAt("Runs: 0\nWins: 0\nTotal play time: 0", 100, 20);
+  LCD.SetFontScale(1.0);
   LCD.Update();
   float x, y;
   while (!LCD.Touch(&x, &y)) {
@@ -214,12 +266,42 @@ void Game::stats() {
 void Game::credits() {
   // basic credits screen
   LCD.Clear();
-  LCD.Write("Credits"); // for some reason this line only is written when you
-                        // click anywhere but the button. also moves if you
-                        // click multiple times
   FEHIcon::Icon backButton;
-  backButton.SetProperties("Back", 120, 80, 80, 80, SCARLET, GRAY);
+  backButton.SetProperties("Back", 15, 30, 80, 80, SCARLET, GRAY);
   backButton.Draw();
+  LCD.WriteLine("Credits");
+  LCD.SetFontScale(0.5);
+  LCD.WriteAt("Made by", 100, 20);
+  LCD.WriteAt("Aaron Bernys and Blake Besecker", 100, 30);
+  LCD.WriteAt("Inspiration:", 100, 40);
+  LCD.WriteAt("https://tinyurl.com/nh92xe69", 100, 50);
+  LCD.SetFontScale(1.0);
+  LCD.Update();
+  float x, y;
+  while (!LCD.Touch(&x, &y)) {
+  }
+  while (LCD.Touch(&x, &y)) {
+    if (backButton.Pressed(x, y, 0)) {
+      state = 0;
+    }
+  }
+}
+
+void Game::instructions() {
+  // basic instructions screen
+  LCD.Clear();
+  FEHIcon::Icon backButton;
+  backButton.SetProperties("Back", 15, 30, 80, 80, SCARLET, GRAY);
+  backButton.Draw();
+  LCD.WriteLine("Instructions");
+  LCD.SetFontScale(0.5);
+  LCD.WriteAt("Use the arrow keys", 100, 20);
+  LCD.WriteAt("or wasd to move ", 100, 30);
+  LCD.WriteAt("around and avoid attacks", 100, 40);
+  LCD.WriteAt("to survive.", 100, 50);
+  LCD.WriteAt("Press ESC on the main", 100, 60);
+  LCD.WriteAt("menu to quit", 100, 70);
+  LCD.SetFontScale(1.0);
   LCD.Update();
   float x, y;
   while (!LCD.Touch(&x, &y)) {
@@ -235,23 +317,27 @@ int Game::stateMachine() {
   // couts are for debugging and could be removed
   switch (state) {
   case 0: // menu state
-    std::cout << "CASE 0: MENU";
+    std::cout << "CASE 0: MENU" << "\n";
     menuLoop();
     break;
   case 1: // game state
-    std::cout << "CASE 1: GAME";
+    std::cout << "CASE 1: GAME" << "\n";
     mainloop();
     break;
   case 2: // stats menu
-    std::cout << "CASE 2: STATS";
+    std::cout << "CASE 2: STATS" << "\n";
     stats();
     break;
   case 3: // credits
-    std::cout << "CASE 3: CREDITS";
+    std::cout << "CASE 3: CREDITS" << "\n";
     credits();
     break;
-  case 4: // quit
-    std::cout << "CASE 4: QUIT";
+  case 4:
+    std::cout << "CASE 4: INSTRUCTIONS" << "\n";
+    instructions();
+    break;
+  case 5: // quit
+    std::cout << "CASE 5: QUIT" << "\n";
     return -1;
     break;
   }

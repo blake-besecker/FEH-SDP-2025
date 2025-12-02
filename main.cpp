@@ -39,6 +39,7 @@ public:
   void menuLoop();
   void stats();
   void credits();
+  void instructions();
   int stateMachine();
 };
 
@@ -208,15 +209,19 @@ void Game::menuLoop() {
   // declare an array of four icons called menu
   FEHIcon::Icon menu[4];
   // define the four menu labels
-  char menu_labels[4][20] = {"START", "STATS", "CREDITS", "QUIT"};
-
+  char menu_labels[4][20] = {"START", "STATS", "CREDITS", "INSTRUCTIONS"};
   // draw the menu in a 2 by 2 array with top and bottom
   // margins of 10 and left and right margins of 5
   // with the menu labels, gold borders, and green text
   FEHIcon::DrawIconArray(menu, 2, 2, 10, 10, 5, 5, menu_labels, GOLD, GREEN);
-
   float x, y;
   while (!LCD.Touch(&x, &y)) {
+    if (Keyboard.isPressed(KEY_ESCAPE)) {
+      LCD.WriteLine("Exiting...");
+      state = 5;
+      Sleep(0.25);
+      break;
+    }
   }
   while (LCD.Touch(&x, &y)) {
     // check for each button being pressed and update state acordingly
@@ -257,12 +262,13 @@ void Game::menuLoop() {
 void Game::stats() {
   // basic new screen
   LCD.Clear();
-  LCD.Write("Stats"); // for some reason this line only is written when you
-                      // click anywhere but the button. also moves if you click
-                      // multiple times
   FEHIcon::Icon backButton;
-  backButton.SetProperties("Back", 120, 80, 80, 80, SCARLET, GRAY);
+  backButton.SetProperties("Back", 15, 30, 80, 80, SCARLET, GRAY);
   backButton.Draw();
+  LCD.WriteLine("Stats");
+  LCD.SetFontScale(0.5);
+  LCD.WriteAt("Runs: 0\nWins: 0\nTotal play time: 0", 100, 20);
+  LCD.SetFontScale(1.0);
   LCD.Update();
   float x, y;
   while (!LCD.Touch(&x, &y)) {
@@ -277,12 +283,42 @@ void Game::stats() {
 void Game::credits() {
   // basic credits screen
   LCD.Clear();
-  LCD.Write("Credits"); // for some reason this line only is written when you
-                        // click anywhere but the button. also moves if you
-                        // click multiple times
   FEHIcon::Icon backButton;
-  backButton.SetProperties("Back", 120, 80, 80, 80, SCARLET, GRAY);
+  backButton.SetProperties("Back", 15, 30, 80, 80, SCARLET, GRAY);
   backButton.Draw();
+  LCD.WriteLine("Credits");
+  LCD.SetFontScale(0.5);
+  LCD.WriteAt("Made by", 100, 20);
+  LCD.WriteAt("Aaron Bernys and Blake Besecker", 100, 30);
+  LCD.WriteAt("Inspiration:", 100, 40);
+  LCD.WriteAt("https://tinyurl.com/nh92xe69", 100, 50);
+  LCD.SetFontScale(1.0);
+  LCD.Update();
+  float x, y;
+  while (!LCD.Touch(&x, &y)) {
+  }
+  while (LCD.Touch(&x, &y)) {
+    if (backButton.Pressed(x, y, 0)) {
+      state = 0;
+    }
+  }
+}
+
+void Game::instructions() {
+  // basic instructions screen
+  LCD.Clear();
+  FEHIcon::Icon backButton;
+  backButton.SetProperties("Back", 15, 30, 80, 80, SCARLET, GRAY);
+  backButton.Draw();
+  LCD.WriteLine("Instructions");
+  LCD.SetFontScale(0.5);
+  LCD.WriteAt("Use the arrow keys", 100, 20);
+  LCD.WriteAt("or wasd to move ", 100, 30);
+  LCD.WriteAt("around and avoid attacks", 100, 40);
+  LCD.WriteAt("to survive.", 100, 50);
+  LCD.WriteAt("Press ESC on the main", 100, 60);
+  LCD.WriteAt("menu to quit", 100, 70);
+  LCD.SetFontScale(1.0);
   LCD.Update();
   float x, y;
   while (!LCD.Touch(&x, &y)) {
@@ -298,23 +334,27 @@ int Game::stateMachine() {
   // couts are for debugging and could be removed
   switch (state) {
   case 0: // menu state
-    std::cout << "CASE 0: MENU";
+    std::cout << "CASE 0: MENU" << "\n";
     menuLoop();
     break;
   case 1: // game state
-    std::cout << "CASE 1: GAME";
+    std::cout << "CASE 1: GAME" << "\n";
     mainloop();
     break;
   case 2: // stats menu
-    std::cout << "CASE 2: STATS";
+    std::cout << "CASE 2: STATS" << "\n";
     stats();
     break;
   case 3: // credits
-    std::cout << "CASE 3: CREDITS";
+    std::cout << "CASE 3: CREDITS" << "\n";
     credits();
     break;
-  case 4: // quit
-    std::cout << "CASE 4: QUIT";
+  case 4:
+    std::cout << "CASE 4: INSTRUCTIONS" << "\n";
+    instructions();
+    break;
+  case 5: // quit
+    std::cout << "CASE 5: QUIT" << "\n";
     return -1;
     break;
   }

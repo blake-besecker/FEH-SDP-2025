@@ -7,9 +7,10 @@
 // sounds
 FEHSound hurt_noise("sounds/hurt.wav");
 FEHSound attack_noise("sounds/attack.wav");
+FEHSound button_click("sounds/button.wav");
 FEHSound bg_music("sounds/music.wav");
-// images and sprites
-// bg, player, bosses
+//  images and sprites
+//  bg, player, bosses
 FEHImage tile("images/tile.png");
 FEHImage bad_tile("images/tile_warn.png");
 
@@ -38,17 +39,16 @@ private:
 
 public:
   Game();
-  int startScreen();
-  int endScreen();
+  int check_hit();
   void draw_map();
   void move(char lastkey);
+  int endScreen();
   void mainloop();
   void menuLoop();
   void statsScreen();
   void creditsScreen();
   void instructionsScreen();
   int stateMachine();
-  int check_hit();
 };
 
 int main() {
@@ -56,7 +56,6 @@ int main() {
   // state machine active until quit case
   while (main.stateMachine() != -1) {
   }
-
   return 0;
 }
 
@@ -238,9 +237,11 @@ int Game::endScreen() {
   while (LCD.Touch(&x, &y)) {
     if (end[0].Pressed(x, y, 0)) {
       end[0].Select();
+      button_click.play();
       state = 0;
     } else if (end[1].Pressed(x, y, 0)) {
       end[1].Select();
+      button_click.play();
       state = 6;
     }
   }
@@ -329,24 +330,28 @@ void Game::menuLoop() {
     // check for each button being pressed and update state acordingly
     if (menu[0].Pressed(x, y, 0)) {
       menu[0].Select();
+      button_click.play();
       menu[1].Deselect();
       menu[2].Deselect();
       menu[3].Deselect();
       state = 1;
     } else if (menu[1].Pressed(x, y, 0)) {
       menu[1].Select();
+      button_click.play();
       menu[0].Deselect();
       menu[2].Deselect();
       menu[3].Deselect();
       state = 2;
     } else if (menu[2].Pressed(x, y, 0)) {
       menu[2].Select();
+      button_click.play();
       menu[0].Deselect();
       menu[1].Deselect();
       menu[3].Deselect();
       state = 3;
     } else if (menu[3].Pressed(x, y, 0)) {
       menu[3].Select();
+      button_click.play();
       menu[0].Deselect();
       menu[1].Deselect();
       menu[2].Deselect();
@@ -360,9 +365,9 @@ void Game::statsScreen() {
   // basic stats screen
   LCD.Clear();
   FEHIcon::Icon backButton;
-  backButton.SetProperties("Back", 15, 30, 80, 80, PURPLE, BLUE);
+  backButton.SetProperties("BACK", 15, 30, 80, 80, PURPLE, BLUE);
   backButton.Draw();
-  LCD.WriteLine("Stats");
+  LCD.WriteLine("       Stats");
   LCD.SetFontScale(0.5);
   LCD.SetFontColor(WHITE);
   LCD.WriteAt("Runs: 0", 100, 20);
@@ -380,6 +385,7 @@ void Game::statsScreen() {
   }
   while (LCD.Touch(&x, &y)) {
     if (backButton.Pressed(x, y, 0)) {
+      button_click.play();
       state = 0;
     }
   }
@@ -389,9 +395,9 @@ void Game::creditsScreen() {
   // basic credits screen
   LCD.Clear();
   FEHIcon::Icon backButton;
-  backButton.SetProperties("Back", 15, 30, 80, 80, PURPLE, BLUE);
+  backButton.SetProperties("BACK", 15, 30, 80, 80, PURPLE, BLUE);
   backButton.Draw();
-  LCD.WriteLine("Credits");
+  LCD.WriteLine("       Credits");
   LCD.SetFontScale(0.5);
   LCD.SetFontColor(WHITE);
   LCD.WriteAt("Made by", 100, 20);
@@ -410,6 +416,7 @@ void Game::creditsScreen() {
   }
   while (LCD.Touch(&x, &y)) {
     if (backButton.Pressed(x, y, 0)) {
+      button_click.play();
       state = 0;
     }
   }
@@ -419,9 +426,9 @@ void Game::instructionsScreen() {
   // basic instructions screen
   LCD.Clear();
   FEHIcon::Icon backButton;
-  backButton.SetProperties("Back", 15, 30, 80, 80, PURPLE, BLUE);
+  backButton.SetProperties("BACK", 15, 30, 80, 80, PURPLE, BLUE);
   backButton.Draw();
-  LCD.WriteLine("Instructions");
+  LCD.WriteLine("       Instructions");
   LCD.SetFontScale(0.5);
   LCD.SetFontColor(WHITE);
   LCD.WriteAt("Use the arrow keys", 100, 20);
@@ -442,13 +449,13 @@ void Game::instructionsScreen() {
   }
   while (LCD.Touch(&x, &y)) {
     if (backButton.Pressed(x, y, 0)) {
+      button_click.play();
       state = 0;
     }
   }
 }
 
 int Game::stateMachine() {
-  // couts are for debugging and could be removed
   switch (state) {
   case 0: // menu state
     std::cout << "CASE 0: MENU" << "\n";

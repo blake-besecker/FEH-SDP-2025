@@ -147,11 +147,21 @@ int Game::endScreen() {
   // 0 to close takes in a success variable(true is a win, false is a lose)
   LCD.Clear();
   FEHIcon::Icon end[2];
+  FEHIcon::Icon result;
   char endLabels[2][20] = {"RESTART", "QUIT"};
-  FEHIcon::DrawIconArray(end, 1, 2, 100, 10, 60, 60, endLabels, PURPLE, BLUE);
+  char resultText[2][20] = {"YOU WIN", "YOU LOSE"};
+  FEHIcon::DrawIconArray(end, 2, 1, 100, 10, 60, 60, endLabels, PURPLE, BLUE);
   LCD.SetFontColor(BLACK);
-  LCD.DrawRectangle(60, 100, 100, 130);
-  LCD.DrawRectangle(160, 100, 100, 130);
+  LCD.DrawRectangle(60, 100, 200, 65);
+  LCD.DrawRectangle(60, 165, 200, 65);
+  if (success) {
+    LCD.SetFontColor(GREEN);
+    result.SetProperties(resultText[0], 60, 10, 200, 65, BLACK, GREEN);
+  } else {
+    LCD.SetFontColor(RED);
+    result.SetProperties(resultText[0], 60, 10, 200, 65, BLACK, RED);
+  }
+  result.Draw();
   float x, y;
   while (!LCD.Touch(&x, &y)) {
     if (end[0].Pressed(x, y, 0)) {

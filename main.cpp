@@ -16,6 +16,7 @@ FEHImage bad_tile("images/tile_warn.png");
 
 FEHImage background1("images/bg_1.png");
 FEHImage menuBackground("images/menubg.png");
+FEHImage difficultyBackground("images/castledoor.png");
 // FEHImage background2("bg_2.png");
 // FEHImage background3("bg_3.png");
 
@@ -29,7 +30,8 @@ FEHImage hurt_player("images/player_hurt.png");
 class Game {
 private:
   // game duration and difficuilty variables
-  float startTime, duration, difficulty;
+  float startTime, duration;
+  int difficulty;
   // hit variables
   float hitCD, lastHit;
   int hp, damage;
@@ -53,6 +55,7 @@ public:
   void move(char lastkey);
   void gameloop();
   void menuLoop();
+  void difficultyScreen();
   void statsScreen();
   void creditsScreen();
   void guideScreen();
@@ -72,7 +75,6 @@ int main() {
 Game::Game() {}
 
 void Game::resestVariables() {
-  duration = 90;
   difficulty = 1;
 
   hitCD = 0.9;
@@ -88,7 +90,6 @@ void Game::resestVariables() {
   attack_type = 3;
 
   state = 0;
-  success = false;
 }
 
 int Game::check_hit() {
@@ -232,6 +233,17 @@ void Game::gameloop() {
   // attack progress is the progress towards an attack happening. increases by
   // 1000 a second attack state. 0, nothing happens. 1, warning. 2, attack is
   // going on attack type, 1-4. each one does something different
+  switch (difficulty) {
+  case 1:
+    duration = 30;
+    break;
+  case 2:
+    duration = 60;
+    break;
+  case 3:
+    duration = 90;
+    break;
+  }
 
   startTime = TimeNow();
   bg_music.setVolume(0.6);
@@ -257,7 +269,7 @@ void Game::gameloop() {
     move(lastKey);
     if (hp <= 0) {
       success = false;
-      state = 5;
+      state = 6;
       return;
     }
     hp -= check_hit();
@@ -266,7 +278,7 @@ void Game::gameloop() {
   }
   success = true;
   wins++;
-  state = 5;
+  state = 6;
 }
 
 void Game::menuLoop() {
@@ -294,7 +306,7 @@ void Game::menuLoop() {
       LCD.Clear(BLACK);
       LCD.SetFontColor(PURPLE);
       LCD.WriteLine("Exiting...");
-      state = 6;
+      state = 7;
       Sleep(0.25);
       break;
     }
@@ -341,21 +353,80 @@ void Game::menuLoop() {
       menu[0].Deselect();
       menu[2].Deselect();
       menu[3].Deselect();
-      state = 2;
+      state = 3;
     } else if (menu[2].Pressed(x, y, 0)) {
       menu[2].Select();
       button_click.play();
       menu[0].Deselect();
       menu[1].Deselect();
       menu[3].Deselect();
-      state = 3;
+      state = 4;
     } else if (menu[3].Pressed(x, y, 0)) {
       menu[3].Select();
       button_click.play();
       menu[0].Deselect();
       menu[1].Deselect();
       menu[2].Deselect();
-      state = 4;
+      state = 5;
+    }
+  }
+}
+
+void Game::difficultyScreen() {
+  // Clear screen and draw end screen
+  LCD.Clear();
+  difficultyBackground.Draw(0, 0);
+  FEHIcon::Icon difficultySelect[3];
+  char difficulties[3][20] = {"EASY", "MEDIUM", "HARD"};
+  FEHIcon::DrawIconArray(difficultySelect, 3, 1, 100, 10, 60, 60, difficulties,
+                         PURPLE, BLUE);
+  LCD.Update();
+
+  // Wait for touch and select button under cursor
+  float x, y;
+  while (!LCD.Touch(&x, &y)) {
+    if (difficultySelect[0].Pressed(x, y, 0)) {
+      difficultySelect[0].Select();
+      difficultySelect[1].Deselect();
+      difficultySelect[2].Deselect();
+    } else if (difficultySelect[1].Pressed(x, y, 0)) {
+      difficultySelect[0].Deselect();
+      difficultySelect[1].Select();
+      difficultySelect[2].Deselect();
+    } else if (difficultySelect[2].Pressed(x, y, 0)) {
+      difficultySelect[0].Deselect();
+      difficultySelect[1].Deselect();
+      difficultySelect[2].Select();
+    } else {
+      difficultySelect[0].Deselect();
+      difficultySelect[1].Deselect();
+      difficultySelect[2].Deselect();
+    }
+  }
+
+  // detect touch and change state
+  while (LCD.Touch(&x, &y)) {
+    if (difficultySelect[0].Pressed(x, y, 0)) {
+      difficulty = 1;
+      difficultySelect[0].Select();
+      button_click.play();
+      difficultySelect[1].Deselect();
+      difficultySelect[2].Deselect();
+      state = 2;
+    } else if (difficultySelect[1].Pressed(x, y, 0)) {
+      difficulty = 2;
+      difficultySelect[0].Deselect();
+      difficultySelect[1].Select();
+      button_click.play();
+      difficultySelect[2].Deselect();
+      state = 2;
+    } else if (difficultySelect[2].Pressed(x, y, 0)) {
+      difficulty = 3;
+      difficultySelect[0].Deselect();
+      difficultySelect[1].Deselect();
+      difficultySelect[2].Select();
+      button_click.play();
+      state = 2;
     }
   }
 }
@@ -365,17 +436,17 @@ void Game::statsScreen() {
   LCD.Clear();
   menuBackground.Draw(0, 0);
   FEHIcon::Icon backButton;
-  backButton.SetProperties("BACK", 15, 30, 80, 80, PURPLE, BLUE);
+  backButton.SetProperties("BACK", 15, 140, 80, 80, PURPLE, BLUE);
   backButton.Draw();
   LCD.WriteLine("           Stats");
   LCD.SetFontScale(0.5);
   LCD.SetFontColor(WHITE);
-  LCD.WriteAt("Runs: ", 100, 30);
-  LCD.WriteAt(runs, 250, 30);
-  LCD.WriteAt("Wins: ", 100, 40);
-  LCD.WriteAt(wins, 250, 40);
-  LCD.WriteAt("Total Time Survived: ", 100, 50);
-  LCD.WriteAt(timeSurvived, 250, 50);
+  LCD.WriteAt("Runs: ", 120, 30);
+  LCD.WriteAt(runs, 280, 30);
+  LCD.WriteAt("Wins: ", 120, 40);
+  LCD.WriteAt(wins, 280, 40);
+  LCD.WriteAt("Total Time Survived: ", 120, 50);
+  LCD.WriteAt(timeSurvived, 280, 50);
   LCD.SetFontScale(1.0);
   LCD.Update();
 
@@ -403,15 +474,15 @@ void Game::creditsScreen() {
   LCD.Clear();
   menuBackground.Draw(0, 0);
   FEHIcon::Icon backButton;
-  backButton.SetProperties("BACK", 15, 30, 80, 80, PURPLE, BLUE);
+  backButton.SetProperties("BACK", 15, 140, 80, 80, PURPLE, BLUE);
   backButton.Draw();
   LCD.WriteLine("         Credits");
   LCD.SetFontScale(0.5);
   LCD.SetFontColor(WHITE);
-  LCD.WriteAt("Made by", 100, 30);
-  LCD.WriteAt("Aaron Bernys and Blake Besecker", 100, 40);
-  LCD.WriteAt("Inspiration:", 100, 50);
-  LCD.WriteAt("https://tinyurl.com/nh92xe69", 100, 60);
+  LCD.WriteAt("Made by", 130, 30);
+  LCD.WriteAt("Aaron Bernys and Blake Besecker", 70, 40);
+  LCD.WriteAt("Inspiration:", 120, 50);
+  LCD.WriteAt("https://tinyurl.com/nh92xe69", 70, 60);
   LCD.SetFontScale(1.0);
   LCD.Update();
 
@@ -439,17 +510,17 @@ void Game::guideScreen() {
   LCD.Clear();
   menuBackground.Draw(0, 0);
   FEHIcon::Icon backButton;
-  backButton.SetProperties("BACK", 15, 30, 80, 80, PURPLE, BLUE);
+  backButton.SetProperties("BACK", 15, 140, 80, 80, PURPLE, BLUE);
   backButton.Draw();
   LCD.WriteLine("           Guide");
   LCD.SetFontScale(0.5);
   LCD.SetFontColor(WHITE);
-  LCD.WriteAt("Use the arrow keys", 100, 30);
-  LCD.WriteAt("or wasd to move ", 100, 40);
-  LCD.WriteAt("around and avoid attacks", 100, 50);
-  LCD.WriteAt("to survive.", 100, 60);
-  LCD.WriteAt("Press ESC on the main", 100, 70);
-  LCD.WriteAt("menu to quit", 100, 80);
+  LCD.WriteAt("Use the arrow keys", 185, 110);
+  LCD.WriteAt("or wasd to move", 185, 120);
+  LCD.WriteAt("around and avoid", 185, 130);
+  LCD.WriteAt("attacks to survive.", 185, 140);
+  LCD.WriteAt("Press ESC on the", 185, 150);
+  LCD.WriteAt("main menu to quit", 185, 160);
   LCD.SetFontScale(1.0);
   LCD.Update();
 
@@ -518,7 +589,7 @@ int Game::endScreen() {
     } else if (end[1].Pressed(x, y, 0)) {
       end[1].Select();
       button_click.play();
-      state = 6;
+      state = 7;
     }
   }
 }
@@ -529,29 +600,33 @@ int Game::stateMachine() {
     std::cout << "CASE 0: MENU" << "\n";
     menuLoop();
     break;
-  case 1: // game state
-    std::cout << "CASE 1: GAME" << "\n";
+  case 1: // difuculty select
+    std::cout << "CASE 1: DIFFICULTY" << "\n";
+    difficultyScreen();
+    break;
+  case 2: // game state
+    std::cout << "CASE 2: GAME" << "\n";
     runs++;
     gameloop();
     break;
-  case 2: // stats menu
-    std::cout << "CASE 2: STATS" << "\n";
+  case 3: // stats menu
+    std::cout << "CASE 3: STATS" << "\n";
     statsScreen();
     break;
-  case 3: // credits
-    std::cout << "CASE 3: CREDITS" << "\n";
+  case 4: // credits
+    std::cout << "CASE 4: CREDITS" << "\n";
     creditsScreen();
     break;
-  case 4: // guide
-    std::cout << "CASE 4: GUIDE" << "\n";
+  case 5: // guide
+    std::cout << "CASE 5: GUIDE" << "\n";
     guideScreen();
     break;
-  case 5: // end screen
-    std::cout << "CASE 5: END" << "\n";
+  case 6: // end screen
+    std::cout << "CASE 6: END" << "\n";
     endScreen();
     break;
-  case 6: // quit
-    std::cout << "CASE 6: QUIT" << "\n";
+  case 7: // quit
+    std::cout << "CASE 7: QUIT" << "\n";
     return -1;
     break;
   }

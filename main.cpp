@@ -27,32 +27,41 @@ FEHImage hurt_player("images/player_hurt.png");
 
 class Game {
 private:
-  float startTime, duration = 90, difficulty = 1;
-  float hitCD = 0.9, lastHit = TimeNow();
-  int hp = 100, damage = -10, state = 0;
-  int x = 100, y = 80;
-  int attack_state = 0;
-  int attack_progress = 0;
-  int attack_type = 3;
-  int max_x = 150, min_x = 100, max_y = 130, min_y = 80, increment = 10;
+  // game duration and difficuilty variables
+  float startTime, duration, difficulty;
+  // hit variables
+  float hitCD, lastHit;
+  int hp, damage;
+  // player variables
+  int x, y;
+  const int max_x = 150, min_x = 100, max_y = 130, min_y = 80, increment = 10;
+  // boss variables
+  int attack_state, attack_progress, attack_type;
+  // stats (given declarations because they are kept through multiple runs)
+  int wins = 0, runs = 0;
+  float timeSurvived = 0.0;
+  // flow control variables
+  int state;
   bool success;
 
 public:
   Game();
+  void resestVariables();
   int check_hit();
   void draw_map();
   void move(char lastkey);
-  int endScreen();
-  void mainloop();
+  void gameloop();
   void menuLoop();
   void statsScreen();
   void creditsScreen();
   void instructionsScreen();
+  int endScreen();
   int stateMachine();
 };
 
 int main() {
   Game main;
+  main.resestVariables();
   // state machine active until quit case
   while (main.stateMachine() != -1) {
   }
@@ -60,6 +69,26 @@ int main() {
 }
 
 Game::Game() {}
+
+void Game::resestVariables() {
+  duration = 90;
+  difficulty = 1;
+
+  hitCD = 0.9;
+  lastHit = TimeNow();
+  hp = 10;
+  damage = 10;
+
+  x = 100;
+  y = 80;
+
+  attack_state = 0;
+  attack_progress = 0;
+  attack_type = 3;
+
+  state = 0;
+  success = false;
+}
 
 int Game::check_hit() {
   if (TimeNow() - lastHit < hitCD)
@@ -168,11 +197,6 @@ void Game::move(char lastKey) {
     delta_y = 10;
   if (lastKey == 'd')
     delta_x = 10;
-  if (hp <= 0) {
-    success = false;
-    state = 5;
-    return;
-  }
   if (x + delta_x < max_x && x + delta_x > min_x - increment)
     x += delta_x;
 
@@ -197,58 +221,12 @@ void Game::move(char lastKey) {
   }
   LCD.WriteAt("hp: ", 10, 30);
   LCD.WriteAt(hp, 50, 30);
-  LCD.WriteAt((TimeNow() - startTime), 90, 30);
+  float currentTime = TimeNow() - startTime;
+  LCD.WriteAt((currentTime), 90, 30);
+  timeSurvived += currentTime;
 }
 
-int Game::endScreen() {
-
-  // the end screen. should offer to play again. returns 1 to play again, and
-  // 0 to close takes in a success variable(true is a win, false is a lose)
-  LCD.Clear();
-  FEHIcon::Icon end[2];
-  FEHIcon::Icon result;
-  char endLabels[2][20] = {"RESTART", "QUIT"};
-  char resultText[2][20] = {"YOU WIN", "YOU LOSE"};
-  FEHIcon::DrawIconArray(end, 2, 1, 100, 10, 60, 60, endLabels, PURPLE, BLUE);
-  LCD.SetFontColor(BLACK);
-  LCD.DrawRectangle(60, 100, 200, 65);
-  LCD.DrawRectangle(60, 165, 200, 65);
-  if (success) {
-    LCD.SetFontColor(GREEN);
-    result.SetProperties(resultText[0], 60, 10, 200, 65, BLACK, GREEN);
-  } else {
-    LCD.SetFontColor(RED);
-    result.SetProperties(resultText[0], 60, 10, 200, 65, BLACK, RED);
-  }
-  result.Draw();
-  float x, y;
-  while (!LCD.Touch(&x, &y)) {
-    if (end[0].Pressed(x, y, 0)) {
-      end[0].Select();
-      end[1].Deselect();
-    } else if (end[1].Pressed(x, y, 0)) {
-      end[0].Deselect();
-      end[1].Select();
-    } else {
-      end[0].Deselect();
-      end[1].Deselect();
-    }
-  }
-  while (LCD.Touch(&x, &y)) {
-    if (end[0].Pressed(x, y, 0)) {
-      end[0].Select();
-      button_click.play();
-      state = 0;
-    } else if (end[1].Pressed(x, y, 0)) {
-      end[1].Select();
-      button_click.play();
-      state = 6;
-    }
-  }
-  LCD.Update();
-}
-
-void Game::mainloop() {
+void Game::gameloop() {
   // the main loop of the game
   // attack progress is the progress towards an attack happening. increases by
   // 1000 a second attack state. 0, nothing happens. 1, warning. 2, attack is
@@ -276,24 +254,30 @@ void Game::mainloop() {
     if (Keyboard.areAnyPressed())
       lastKey = Keyboard.lastChar();
     move(lastKey);
-    hp += check_hit();
+    if (hp <= 0) {
+      success = false;
+      state = 5;
+      return;
+    }
+    hp -= check_hit();
     LCD.Update();
     Sleep(0.01);
   }
   success = true;
+  wins++;
   state = 5;
 }
 
 void Game::menuLoop() {
+  // Clear screen and draw menu screen
   LCD.Clear();
-  // declare an array of four icons called menu
   FEHIcon::Icon menu[4];
-  // define the four menu labels
   char menu_labels[4][20] = {"START", "STATS", "CREDITS", "INSTRUCTIONS"};
-  // draw the menu in a 2 by 2 array with top and bottom
-  // margins of 10 and left and right margins of 5
-  // with the menu labels, gold borders, and green text
   FEHIcon::DrawIconArray(menu, 2, 2, 10, 10, 5, 5, menu_labels, PURPLE, BLUE);
+  LCD.Update();
+
+  // wait for touch allowing user to quit with ESC and selecting buttons under
+  // cursor
   float x, y;
   while (!LCD.Touch(&x, &y)) {
     if (Keyboard.isPressed(KEY_ESCAPE)) {
@@ -326,8 +310,9 @@ void Game::menuLoop() {
       menu[2].Deselect();
     }
   }
+
+  // Detect touch and change state
   while (LCD.Touch(&x, &y)) {
-    // check for each button being pressed and update state acordingly
     if (menu[0].Pressed(x, y, 0)) {
       menu[0].Select();
       button_click.play();
@@ -357,12 +342,11 @@ void Game::menuLoop() {
       menu[2].Deselect();
       state = 4;
     }
-    LCD.Update();
   }
 }
 
 void Game::statsScreen() {
-  // basic stats screen
+  // Clear screen and draw stats screen
   LCD.Clear();
   FEHIcon::Icon backButton;
   backButton.SetProperties("BACK", 15, 30, 80, 80, PURPLE, BLUE);
@@ -370,11 +354,16 @@ void Game::statsScreen() {
   LCD.WriteLine("       Stats");
   LCD.SetFontScale(0.5);
   LCD.SetFontColor(WHITE);
-  LCD.WriteAt("Runs: 0", 100, 20);
-  LCD.WriteAt("Wins: 0", 100, 30);
-  LCD.WriteAt("Total play time: 0", 100, 40);
+  LCD.WriteAt("Runs: ", 100, 20);
+  LCD.WriteAt(runs, 250, 20);
+  LCD.WriteAt("Wins: ", 100, 30);
+  LCD.WriteAt(wins, 250, 30);
+  LCD.WriteAt("Total Time Survived: ", 100, 40);
+  LCD.WriteAt(timeSurvived, 250, 40);
   LCD.SetFontScale(1.0);
   LCD.Update();
+
+  // Wait for touch and select button when under cursor
   float x, y;
   while (!LCD.Touch(&x, &y)) {
     if (backButton.Pressed(x, y, 0)) {
@@ -383,6 +372,8 @@ void Game::statsScreen() {
       backButton.Deselect();
     }
   }
+
+  // Detect touch and change state
   while (LCD.Touch(&x, &y)) {
     if (backButton.Pressed(x, y, 0)) {
       button_click.play();
@@ -392,7 +383,7 @@ void Game::statsScreen() {
 }
 
 void Game::creditsScreen() {
-  // basic credits screen
+  // Clear screen and draw credits screen
   LCD.Clear();
   FEHIcon::Icon backButton;
   backButton.SetProperties("BACK", 15, 30, 80, 80, PURPLE, BLUE);
@@ -406,6 +397,8 @@ void Game::creditsScreen() {
   LCD.WriteAt("https://tinyurl.com/nh92xe69", 100, 50);
   LCD.SetFontScale(1.0);
   LCD.Update();
+
+  // Wait for touch and select button when under cursor
   float x, y;
   while (!LCD.Touch(&x, &y)) {
     if (backButton.Pressed(x, y, 0)) {
@@ -414,6 +407,8 @@ void Game::creditsScreen() {
       backButton.Deselect();
     }
   }
+
+  // Detect touch and change state
   while (LCD.Touch(&x, &y)) {
     if (backButton.Pressed(x, y, 0)) {
       button_click.play();
@@ -423,7 +418,7 @@ void Game::creditsScreen() {
 }
 
 void Game::instructionsScreen() {
-  // basic instructions screen
+  // Clear screen and draw instructions screen
   LCD.Clear();
   FEHIcon::Icon backButton;
   backButton.SetProperties("BACK", 15, 30, 80, 80, PURPLE, BLUE);
@@ -439,6 +434,8 @@ void Game::instructionsScreen() {
   LCD.WriteAt("menu to quit", 100, 70);
   LCD.SetFontScale(1.0);
   LCD.Update();
+
+  // Wait for touch and select button when under cursor
   float x, y;
   while (!LCD.Touch(&x, &y)) {
     if (backButton.Pressed(x, y, 0)) {
@@ -447,10 +444,63 @@ void Game::instructionsScreen() {
       backButton.Deselect();
     }
   }
+
+  // Detect touch and change state
   while (LCD.Touch(&x, &y)) {
     if (backButton.Pressed(x, y, 0)) {
       button_click.play();
       state = 0;
+    }
+  }
+}
+
+int Game::endScreen() {
+  resestVariables();
+  // Clear screen and draw end screen
+  LCD.Clear();
+  FEHIcon::Icon end[2];
+  FEHIcon::Icon result;
+  char endLabels[2][20] = {"RESTART", "QUIT"};
+  char resultText[2][20] = {"YOU WIN", "YOU LOSE"};
+  FEHIcon::DrawIconArray(end, 2, 1, 100, 10, 60, 60, endLabels, PURPLE, BLUE);
+  LCD.SetFontColor(BLACK);
+  LCD.DrawRectangle(60, 100, 200, 65);
+  LCD.DrawRectangle(60, 165, 200, 65);
+  if (success) {
+    LCD.SetFontColor(GREEN);
+    result.SetProperties(resultText[0], 60, 10, 200, 65, BLACK, GREEN);
+  } else {
+    LCD.SetFontColor(RED);
+    result.SetProperties(resultText[1], 60, 10, 200, 65, BLACK, RED);
+  }
+  result.Draw();
+  LCD.Update();
+
+  // Wait for touch and select button under cursor
+  float x, y;
+  while (!LCD.Touch(&x, &y)) {
+    if (end[0].Pressed(x, y, 0)) {
+      end[0].Select();
+      end[1].Deselect();
+    } else if (end[1].Pressed(x, y, 0)) {
+      end[0].Deselect();
+      end[1].Select();
+    } else {
+      end[0].Deselect();
+      end[1].Deselect();
+    }
+  }
+
+  // detect touch and change state
+  while (LCD.Touch(&x, &y)) {
+    if (end[0].Pressed(x, y, 0)) {
+      end[0].Select();
+      button_click.play();
+      state = 0;
+    } else if (end[1].Pressed(x, y, 0)) {
+      end[1].Select();
+      button_click.play();
+      state = 6;
     }
   }
 }
@@ -463,7 +513,8 @@ int Game::stateMachine() {
     break;
   case 1: // game state
     std::cout << "CASE 1: GAME" << "\n";
-    mainloop();
+    runs++;
+    gameloop();
     break;
   case 2: // stats menu
     std::cout << "CASE 2: STATS" << "\n";

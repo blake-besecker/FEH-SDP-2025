@@ -15,6 +15,7 @@ FEHImage tile("images/tile.png");
 FEHImage bad_tile("images/tile_warn.png");
 
 FEHImage background1("images/bg_1.png");
+FEHImage menuBackground("images/menubg.png");
 // FEHImage background2("bg_2.png");
 // FEHImage background3("bg_3.png");
 
@@ -54,7 +55,7 @@ public:
   void menuLoop();
   void statsScreen();
   void creditsScreen();
-  void instructionsScreen();
+  void guideScreen();
   int endScreen();
   int stateMachine();
 };
@@ -271,9 +272,18 @@ void Game::gameloop() {
 void Game::menuLoop() {
   // Clear screen and draw menu screen
   LCD.Clear();
+  menuBackground.Draw(0, 0);
   FEHIcon::Icon menu[4];
-  char menu_labels[4][20] = {"START", "STATS", "CREDITS", "INSTRUCTIONS"};
-  FEHIcon::DrawIconArray(menu, 2, 2, 10, 10, 5, 5, menu_labels, PURPLE, BLUE);
+  char menu_labels[4][20] = {"START", "STATS", "CREDITS", "GUIDE"};
+  FEHIcon::DrawIconArray(menu, 2, 2, 100, 20, 30, 30, menu_labels, PURPLE,
+                         BLUE);
+  LCD.SetFontScale(2.0);
+  LCD.SetFontColor(PURPLE);
+  LCD.WriteAt("GAME TITLE", 38, 30);
+  LCD.WriteAt("GAME TITLE", 39, 31);
+  LCD.SetFontColor(BLUE);
+  LCD.WriteAt("GAME TITLE", 40, 32);
+  LCD.SetFontScale(1.0);
   LCD.Update();
 
   // wait for touch allowing user to quit with ESC and selecting buttons under
@@ -308,6 +318,11 @@ void Game::menuLoop() {
       menu[0].Deselect();
       menu[1].Deselect();
       menu[2].Deselect();
+    } else {
+      menu[0].Deselect();
+      menu[1].Deselect();
+      menu[2].Deselect();
+      menu[3].Deselect();
     }
   }
 
@@ -348,18 +363,19 @@ void Game::menuLoop() {
 void Game::statsScreen() {
   // Clear screen and draw stats screen
   LCD.Clear();
+  menuBackground.Draw(0, 0);
   FEHIcon::Icon backButton;
   backButton.SetProperties("BACK", 15, 30, 80, 80, PURPLE, BLUE);
   backButton.Draw();
-  LCD.WriteLine("       Stats");
+  LCD.WriteLine("           Stats");
   LCD.SetFontScale(0.5);
   LCD.SetFontColor(WHITE);
-  LCD.WriteAt("Runs: ", 100, 20);
-  LCD.WriteAt(runs, 250, 20);
-  LCD.WriteAt("Wins: ", 100, 30);
-  LCD.WriteAt(wins, 250, 30);
-  LCD.WriteAt("Total Time Survived: ", 100, 40);
-  LCD.WriteAt(timeSurvived, 250, 40);
+  LCD.WriteAt("Runs: ", 100, 30);
+  LCD.WriteAt(runs, 250, 30);
+  LCD.WriteAt("Wins: ", 100, 40);
+  LCD.WriteAt(wins, 250, 40);
+  LCD.WriteAt("Total Time Survived: ", 100, 50);
+  LCD.WriteAt(timeSurvived, 250, 50);
   LCD.SetFontScale(1.0);
   LCD.Update();
 
@@ -385,16 +401,17 @@ void Game::statsScreen() {
 void Game::creditsScreen() {
   // Clear screen and draw credits screen
   LCD.Clear();
+  menuBackground.Draw(0, 0);
   FEHIcon::Icon backButton;
   backButton.SetProperties("BACK", 15, 30, 80, 80, PURPLE, BLUE);
   backButton.Draw();
-  LCD.WriteLine("       Credits");
+  LCD.WriteLine("         Credits");
   LCD.SetFontScale(0.5);
   LCD.SetFontColor(WHITE);
-  LCD.WriteAt("Made by", 100, 20);
-  LCD.WriteAt("Aaron Bernys and Blake Besecker", 100, 30);
-  LCD.WriteAt("Inspiration:", 100, 40);
-  LCD.WriteAt("https://tinyurl.com/nh92xe69", 100, 50);
+  LCD.WriteAt("Made by", 100, 30);
+  LCD.WriteAt("Aaron Bernys and Blake Besecker", 100, 40);
+  LCD.WriteAt("Inspiration:", 100, 50);
+  LCD.WriteAt("https://tinyurl.com/nh92xe69", 100, 60);
   LCD.SetFontScale(1.0);
   LCD.Update();
 
@@ -417,21 +434,22 @@ void Game::creditsScreen() {
   }
 }
 
-void Game::instructionsScreen() {
+void Game::guideScreen() {
   // Clear screen and draw instructions screen
   LCD.Clear();
+  menuBackground.Draw(0, 0);
   FEHIcon::Icon backButton;
   backButton.SetProperties("BACK", 15, 30, 80, 80, PURPLE, BLUE);
   backButton.Draw();
-  LCD.WriteLine("       Instructions");
+  LCD.WriteLine("           Guide");
   LCD.SetFontScale(0.5);
   LCD.SetFontColor(WHITE);
-  LCD.WriteAt("Use the arrow keys", 100, 20);
-  LCD.WriteAt("or wasd to move ", 100, 30);
-  LCD.WriteAt("around and avoid attacks", 100, 40);
-  LCD.WriteAt("to survive.", 100, 50);
-  LCD.WriteAt("Press ESC on the main", 100, 60);
-  LCD.WriteAt("menu to quit", 100, 70);
+  LCD.WriteAt("Use the arrow keys", 100, 30);
+  LCD.WriteAt("or wasd to move ", 100, 40);
+  LCD.WriteAt("around and avoid attacks", 100, 50);
+  LCD.WriteAt("to survive.", 100, 60);
+  LCD.WriteAt("Press ESC on the main", 100, 70);
+  LCD.WriteAt("menu to quit", 100, 80);
   LCD.SetFontScale(1.0);
   LCD.Update();
 
@@ -524,9 +542,9 @@ int Game::stateMachine() {
     std::cout << "CASE 3: CREDITS" << "\n";
     creditsScreen();
     break;
-  case 4: // instructions
-    std::cout << "CASE 4: INSTRUCTIONS" << "\n";
-    instructionsScreen();
+  case 4: // guide
+    std::cout << "CASE 4: GUIDE" << "\n";
+    guideScreen();
     break;
   case 5: // end screen
     std::cout << "CASE 5: END" << "\n";

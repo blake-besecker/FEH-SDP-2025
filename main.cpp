@@ -9,56 +9,64 @@ FEHSound hurt_noise("sounds/hurt.wav");
 FEHSound attack_noise("sounds/attack.wav");
 FEHSound button_click("sounds/button.wav");
 FEHSound bg_music("sounds/music.wav");
-//  images and sprites
-//  bg, player, bosses
+// tiles
 FEHImage tile("images/tile.png");
 FEHImage bad_tile("images/tile_warn.png");
+// backgrounds
 FEHImage background1("images/bg_1.png");
 FEHImage menuBackground("images/menubg.png");
 FEHImage difficultyBackground("images/castledoor.png");
 FEHImage loseBackground("images/losebackground.png");
 FEHImage winBackground("images/winbackground.png");
-// FEHImage background2("bg_2.png");
-// FEHImage background3("bg_3.png");
+// boss
 FEHImage boss1("images/boss.png");
-// FEHImage boss2("boss_2.png");
-// FEHImage boss3("boss_3.png");
+// player
 FEHImage player1("images/player.png");
 FEHImage hurt_player("images/player_hurt.png");
 
-const int max_x = 140, min_x = 90, max_y = 180, min_y = 130, increment = 10;
+// board constants
+const int MAX_X = 140, MIN_X = 90, MAX_Y = 180, MIN_Y = 130, INCREMENT = 10;
 const int BOARD_ROWS = 5, BOARD_COLUMNS = 5;
 
+// Unused but could be useful for different attack images
 enum Tiles { NORMAL = 0, WARNING = 1, ACTIVE = 2 };
 
+/**
+ * Game class. holds most variables for the game like the board, player
+ * position, attacks, and state. This allows for most functions to not have
+ * parameters as all important variables are class level.
+ *
+ * @author Blake Besecker
+ */
 class Game {
 private:
   // game duration and difficuilty variables
   float startTime, duration;
   int difficulty;
   // hit variables
-  float hitCD, lastHit;
+  float hitCoolDown, lastHit;
   int hp, damage;
   // player variables
   int x, y;
   // boss variables
-  int attack_state, attack_progress, attack_type, numAttacks;
+  int attackState, attackProgress, attackType, numAttacks;
   // stats (given declarations because they are kept through multiple runs)
   int wins = 0, runs = 0;
   float timeSurvived = 0.0;
   // flow control variables
   int state;
   bool success;
-  // board
+  // game board
   int board[BOARD_ROWS][BOARD_COLUMNS];
 
 public:
+  // TODO order functions in a logical way
   Game();
   void resestVariables();
   void resetBoard();
   void getInput(int *deltaX, int *deltaY);
-  int check_hit(int attackType);
-  void draw_map();
+  int checkHit(int attackType);
+  void drawMap();
   void attack(int attackType);
   void move();
   void refreshScreen(float time);
@@ -73,6 +81,12 @@ public:
   int stateMachine();
 };
 
+/**
+ * Main fuction that creates a game object and sets its variabels and board
+ * before entering the state machine.
+ *
+ * @author Aaron Bernys
+ */
 int main() {
   Game main;
   main.resestVariables();
@@ -83,26 +97,39 @@ int main() {
   return 0;
 }
 
+/**
+ * Remove this?
+ */
 Game::Game() {}
 
-// initalize variables to starting state for multiple runs
+/**
+ * Initalize variables to starting values for multiple runs and to set them
+ * before the first run.
+ *
+ * @author Aaron Bernys
+ */
 void Game::resestVariables() {
-  hitCD = 0.9;
+  hitCoolDown = 0.9;
   lastHit = TimeNow();
-  hp = 10;
+  hp = 30;
   damage = 10;
 
   x = 0;
   y = 0;
 
-  attack_state = 0;
-  attack_progress = 0;
-  attack_type = 3;
+  attackState = 0;
+  attackProgress = 0;
+  attackType = 3;
   numAttacks = 6;
 
   state = 0;
 }
 
+/**
+ * Sets the board to all 0 to clear any attacks.
+ *
+ * @author Aaron Bernys
+ */
 void Game::resetBoard() {
   for (int i = 0; i < 5; i++) {
     for (int j = 0; j < 5; j++) {
@@ -111,118 +138,79 @@ void Game::resetBoard() {
   }
 }
 
+/**
+ * Receive last key pressed from user. Sets deltaX and deltaY corresponding to
+ * the key pressed and checks for ESC to TODO pause the game.
+ *
+ * @author Blake Besecker
+ * @author Aaron Bernys
+ */
 void Game::getInput(int *deltaX, int *deltaY) {
   char key = Keyboard.lastChar();
   switch (key) {
   case 'w':
     // case:
-    *deltaY = -10;
+    *deltaY = -1;
     break;
   case 'a':
     // case:
-    *deltaX = -10;
+    *deltaX = -1;
     break;
   case 's':
     // case:
-    *deltaY = 10;
+    *deltaY = 1;
     break;
   case 'd':
     // case:
-    *deltaX = 10;
+    *deltaX = 1;
     break;
   case 27:
     std::cout << "PRESSED ESC" << "\n";
     break;
   }
-  /*
-  bool up = Keyboard.isPressed(KEY_UP);
-  bool left = Keyboard.isPressed(KEY_LEFT);
-  bool down = Keyboard.isPressed(KEY_RIGHT);
-  bool right = Keyboard.isPressed(KEY_DOWN);
-  if (up) {
-    *deltaY = -10;
-  }
-  if (left) {
-    *deltaX = -10;
-  }
-  if (down) {
-    *deltaX = 10;
-  }
-  if (right) {
-    *deltaY = 10;
-  }
-    */
 }
 
-int Game::check_hit(int attackType) {
+/**
+ * Checks board at player position to see if they are hit. Only registers hit if
+ * attackState is 2 and the time from last hit is greater than the hitCoolDown.
+ *
+ * @author Blake Besecker
+ */
+int Game::checkHit(int attackType) {
   int damage = 0;
-  // TODO clean up if else structure
-  /*
-  std::cout << "Time since last hit:" << TimeNow() - lastHit << "\n";
-  std::cout << "Hit Cooldown:" << hitCD << "\n";
-  std::cout << "Attack state:" << attack_state << "\n";
-  std::cout << "board[x][y]:" << board[x][y] << "\n";
-  */
-  if (TimeNow() - lastHit > hitCD && attack_state == 2 && board[x][y] == 1) {
+  if (TimeNow() - lastHit > hitCoolDown && attackState == 2 &&
+      board[x][y] == 1) {
     std::cout << "HIT" << "\n";
     lastHit = TimeNow();
     hurt_noise.play();
     damage = 10;
   }
   return damage;
-  /*
-  if (TimeNow() - lastHit < hitCD)
-    return 0; // hit buffer active
-  if (attack_state == 2) {
-    if (attack_type == 1) {
-      if (((x / 10) % 2 == 0) && ((y / 10) % 2) == 1 ||
-          ((x / 10) % 2 == 1) && ((y / 10) % 2) == 0) {
-        lastHit = TimeNow();
-        hurt_noise.play();
-        return damage;
-      }
-    } else if (attack_type == 2) {
-      if (((x / 10) % 2 == 1) && ((y / 10) % 2) == 0 ||
-          ((x / 10) % 2 == 0) && ((y / 10) % 2) == 1) {
-        lastHit = TimeNow();
-        hurt_noise.play();
-        return damage;
-      }
-    } else if (attack_type == 3) {
-      if (x > min_x && x < max_x - increment && y > min_y &&
-          y < max_y - increment) {
-        lastHit = TimeNow();
-        hurt_noise.play();
-        return damage;
-      } else if (x == max_x - min_x / 2 + increment * 2 ||
-                 y == max_y - min_y / 2 + increment) {
-        lastHit = TimeNow();
-        hurt_noise.play();
-        return damage;
-      }
-    } else if (attack_type == 4) {
-    }
-  }
-    return 0;
-    */
 }
 
-void Game::draw_map() {
+/**
+ * Draw board for no attack and for each attack. Draws bad tiles that are
+ * warning or active attacks and regular tiles based on the boards value at each
+ * position.
+ *
+ * @author Blake Besecker
+ */
+void Game::drawMap() {
   // have to change to get warning and attack type choice one then the other or
   // set a variable to get the name (either warn or danger)
   //  set "bad tile" the type of tile that's bad to stand on.
-  if (attack_state == 1) {
+  if (attackState == 1) {
     bad_tile = FEHImage("images/tile_warn.png");
     attack_noise.play();
-  } else if (attack_state == 2) {
+  } else if (attackState == 2) {
     bad_tile = FEHImage("images/tile_danger.png");
   }
-  switch (attack_type) {
+  switch (attackType) {
     // assign attack image based on type
   }
-  if (attack_state == 0) {
-    for (int i = min_x; i < max_x; i += increment) {
-      for (int j = min_y; j < max_y; j += increment) {
+  if (attackState == 0) {
+    for (int i = MIN_X; i < MAX_X; i += INCREMENT) {
+      for (int j = MIN_Y; j < MAX_Y; j += INCREMENT) {
         tile.Draw(i, j);
       }
     }
@@ -230,57 +218,21 @@ void Game::draw_map() {
     for (int i = 0; i < BOARD_ROWS; i++) {
       for (int j = 0; j < BOARD_COLUMNS; j++) {
         if (board[i][j] == 0) {
-          tile.Draw((i * increment + min_x), (j * increment + min_y));
+          tile.Draw((i * INCREMENT + MIN_X), (j * INCREMENT + MIN_Y));
         } else {
-          bad_tile.Draw((i * increment + min_x), (j * increment + min_y));
+          bad_tile.Draw((i * INCREMENT + MIN_X), (j * INCREMENT + MIN_Y));
         }
       }
     }
   }
-  /*
-    if (attack_state > 0 && attack_type == 1) {
-      // alternating rows and columns are dangerous
-      for (int i = min_x; i < max_x; i += 10) {
-        for (int j = min_y; j < max_y; j += 10) {
-          if (((i / 10) % 2 == 0) || ((j / 10) % 2) == 0) {
-            bad_tile.Draw(i, j);
-          } else {
-            tile.Draw(i, j);
-          }
-        }
-      }
-
-    }
-    // alternate, but the other way
-    else if (attack_state > 0 && attack_type == 2) {
-      for (int i = min_x; i < max_x; i += increment) {
-        for (int j = min_y; j < max_y; j += increment) {
-          if (((i / 10) % 2 == 1) || ((j / 10) % 2) == 1) {
-            bad_tile.Draw(i, j);
-          } else {
-            tile.Draw(i, j);
-          }
-        }
-      }
-    } else if (attack_state > 0 && attack_type == 3) {
-      for (int i = min_x; i < max_x; i += increment) {
-        for (int j = min_y; j < max_y; j += increment) {
-          if (i > min_x && i < max_x - increment && j > min_y &&
-              j < max_y - increment) {
-            bad_tile.Draw(i, j);
-          } else if (i == max_x - min_x / 2 + increment * 2 ||
-                     j == max_y - min_y / 2 + increment) {
-            bad_tile.Draw(i, j);
-          } else {
-            tile.Draw(i, j);
-          }
-        }
-      }
-    } else {
-     */
-  // default
 }
 
+/**
+ * Define each attackType and add it to the board to change its values at each
+ * position.
+ *
+ * @author Aaron Bernys
+ */
 void Game::attack(int attackType) {
   int hashAttack[BOARD_ROWS][BOARD_COLUMNS] = {{0, 1, 0, 1, 0},
                                                {1, 1, 1, 1, 1},
@@ -360,30 +312,40 @@ void Game::attack(int attackType) {
   }
 }
 
+/**
+ * Moves the player clamping it inside the board. Changes the player image based
+ * on time since last hit.
+ *
+ * @author Blake Besecker
+ */
 void Game::move() {
   float time = TimeNow() - startTime;
   int delta_x = 0, delta_y = 0;
-  if (TimeNow() - lastHit <= hitCD) {
+  if (TimeNow() - lastHit <= hitCoolDown) {
     player1 = FEHImage("images/player_hurt.png");
   } else {
     player1 = FEHImage("images/player.png");
   }
   getInput(&delta_x, &delta_y);
-  int pixelX = (x * increment + min_x);
-  int pixelY = (x * increment + min_y);
-  if (pixelX + delta_x < max_x && pixelX + delta_x > min_x - increment) {
-    x += (delta_x / 10);
+
+  if (x + delta_x > 0 && x + delta_x < 5) {
+    x += delta_x;
   }
-  if (pixelY + delta_y < max_y && pixelY + delta_y > min_y - increment) {
-    y += (delta_y / 10);
+  if (y + delta_y > 0 && y + delta_y < 5) {
+    y += delta_y;
   }
   refreshScreen(time);
 }
 
+/**
+ * Redraws the screen and draws UI.
+ *
+ * @author Blake Besecker
+ */
 void Game::refreshScreen(float time) {
   background1.Draw(0, 0);
-  draw_map();
-  player1.Draw((x * increment + min_x), (y * increment + min_y));
+  drawMap();
+  player1.Draw((x * INCREMENT + MIN_X), (y * INCREMENT + MIN_Y));
   boss1.Draw(115, 20);
   LCD.SetFontColor(WHITE);
   LCD.WriteAt("HP: ", 10, 30);
@@ -393,11 +355,15 @@ void Game::refreshScreen(float time) {
   timeSurvived += currentTime;
 }
 
+/**
+ * Main loop of the game attack progress is the progress towards an attack
+ * happening. increases by 1000 a second attack state. 0, nothing happens. 1,
+ * warning. 2, attack is going on attack type, 1-4. each one does something
+ * different
+ *
+ * @author Blake Besecker
+ */
 void Game::gameloop() {
-  // the main loop of the game
-  // attack progress is the progress towards an attack happening. increases by
-  // 1000 a second attack state. 0, nothing happens. 1, warning. 2, attack is
-  // going on attack type, 1-4. each one does something different
   switch (difficulty) {
   case 1:
     duration = 30;
@@ -418,24 +384,29 @@ void Game::gameloop() {
 
     // increment attack progress based on elapsed time
     // cycles every 5 seconds
-    attack_progress++;
-    if (attack_progress >= 40) {
-      attack_progress = 0;
-      attack_state++;
-      if (attack_state > 2) {
-        attack_state = 0;
-        attack_type = Random.RandInt() % numAttacks;
+    attackProgress++;
+    if (attackProgress >= 40) {
+      attackProgress = 0;
+      attackState++;
+      if (attackState > 2) {
+        attackState = 0;
+        attackType = Random.RandInt() % numAttacks;
       }
     }
-    attack(attack_type);
-
+    attack(attackType);
+    if (x > 4 || x < 0) {
+      std::cout << "X OUT OF BOUNDS: " << x << "\n";
+    }
+    if (y > 4 || y < 0) {
+      std::cout << "Y OUT OF BOUNDS: " << y << "\n";
+    }
     move();
     if (hp <= 0) {
       success = false;
       state = 6;
       return;
     }
-    hp -= check_hit(attack_type);
+    hp -= checkHit(attackType);
     resetBoard();
     LCD.Update();
     // Sleep(sleepTime);
@@ -445,6 +416,11 @@ void Game::gameloop() {
   state = 6;
 }
 
+/**
+ * Pause menu during gameplay.
+ *
+ * @author Aaron Bernys
+ */
 void Game::pause() {
   // Clear screen and draw stats screen
   FEHIcon::Icon resumeButton;
@@ -469,7 +445,11 @@ void Game::pause() {
   }
 }
 
-// draw menu screen and control button inputs to set state to other screens
+/**
+ * Draw menu screen and control button inputs to set state to other screens.
+ *
+ * @author Aaron Bernys
+ */
 void Game::menuLoop() {
   for (int i = 0; i < 5; i++) {
     for (int j = 0; j < 5; j++) {
@@ -568,7 +548,11 @@ void Game::menuLoop() {
   }
 }
 
-// allow user to choose difficulty for the run and then go to game state
+/**
+ * Allow user to choose difficulty for the run and then go to game state.
+ *
+ * @author Aaron Bernys
+ */
 void Game::difficultyScreen() {
   // Clear screen and draw end screen
   LCD.Clear();
@@ -632,8 +616,12 @@ void Game::difficultyScreen() {
   }
 }
 
-// allow user to view stats for thier runs (does not transfer between closeing
-// and opening game)
+/**
+ * Allow user to view stats for thier runs (does not transfer between closeing
+ * and opening game).
+ *
+ * @author Aaron Bernys
+ */
 void Game::statsScreen() {
   // Clear screen and draw stats screen
   LCD.Clear();
@@ -672,7 +660,11 @@ void Game::statsScreen() {
   }
 }
 
-// allow user to view the credits and inspiration for the game
+/**
+ * Allow user to view the credits and inspiration for the game.
+ *
+ * @author Aaron Bernys
+ */
 void Game::creditsScreen() {
   // Clear screen and draw credits screen
   LCD.Clear();
@@ -709,7 +701,11 @@ void Game::creditsScreen() {
   }
 }
 
-// allow user to view controls of the game
+/**
+ * Allow user to view controls of the game.
+ *
+ * @author Aaron Bernys
+ */
 void Game::guideScreen() {
   // Clear screen and draw instructions screen
   LCD.Clear();
@@ -748,8 +744,12 @@ void Game::guideScreen() {
   }
 }
 
-// show user if they won or lost and allow them to go back to the menu screen or
-// quit the game
+/**
+ * Show user if they won or lost and allow them to go back to the menu screen or
+ * quit the game.
+ *
+ * @author Aaron Bernys
+ */
 int Game::endScreen() {
   resestVariables();
   // Clear screen and draw end screen
@@ -799,9 +799,13 @@ int Game::endScreen() {
   }
 }
 
-// control flow for the enitre game. Each case calls the respective screen or
-// loop function that retruns to this function when it is done. Continuiuly is
-// called by main function until quit case and stateMachine returns -1
+/**
+ * Control flow for the enitre game. Each case calls the respective screen or
+ * loop function that retruns to this function when it is done. Continuiuly is
+ * called by main function until quit case and stateMachine returns -1.
+ *
+ * @author Aaron Bernys
+ */
 int Game::stateMachine() {
   switch (state) {
   case 0: // menu state

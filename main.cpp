@@ -26,6 +26,11 @@ FEHImage boss1("images/boss.png");
 FEHImage player1("images/player.png");
 FEHImage hurt_player("images/player_hurt.png");
 
+const int max_x = 140, min_x = 90, max_y = 180, min_y = 130, increment = 10;
+const int BOARD_ROWS = 5, BOARD_COLUMNS = 5;
+
+enum Tiles { NORMAL = 0, WARNING = 1, ACTIVE = 2 };
+
 class Game {
 private:
   // game duration and difficuilty variables
@@ -36,22 +41,27 @@ private:
   int hp, damage;
   // player variables
   int x, y;
-  const int max_x = 150, min_x = 100, max_y = 130, min_y = 80, increment = 10;
   // boss variables
-  int attack_state, attack_progress, attack_type;
+  int attack_state, attack_progress, attack_type, numAttacks;
   // stats (given declarations because they are kept through multiple runs)
   int wins = 0, runs = 0;
   float timeSurvived = 0.0;
   // flow control variables
   int state;
   bool success;
+  // board
+  int board[BOARD_ROWS][BOARD_COLUMNS];
 
 public:
   Game();
   void resestVariables();
-  int check_hit();
+  void resetBoard();
+  void getInput(int *deltaX, int *deltaY);
+  int check_hit(int attackType);
   void draw_map();
-  void move(char lastkey);
+  void attack(int attackType);
+  void move();
+  void refreshScreen(float time);
   void gameloop();
   void pause();
   void menuLoop();
@@ -66,6 +76,7 @@ public:
 int main() {
   Game main;
   main.resestVariables();
+  main.resetBoard();
   // state machine active until quit case
   while (main.stateMachine() != -1) {
   }
@@ -81,17 +92,85 @@ void Game::resestVariables() {
   hp = 10;
   damage = 10;
 
-  x = 100;
-  y = 80;
+  x = 0;
+  y = 0;
 
   attack_state = 0;
   attack_progress = 0;
   attack_type = 3;
+  numAttacks = 6;
 
   state = 0;
 }
 
-int Game::check_hit() {
+void Game::resetBoard() {
+  for (int i = 0; i < 5; i++) {
+    for (int j = 0; j < 5; j++) {
+      board[i][j] = 0;
+    }
+  }
+}
+
+void Game::getInput(int *deltaX, int *deltaY) {
+  char key = Keyboard.lastChar();
+  switch (key) {
+  case 'w':
+    // case:
+    *deltaY = -10;
+    break;
+  case 'a':
+    // case:
+    *deltaX = -10;
+    break;
+  case 's':
+    // case:
+    *deltaY = 10;
+    break;
+  case 'd':
+    // case:
+    *deltaX = 10;
+    break;
+  case 27:
+    std::cout << "PRESSED ESC" << "\n";
+    break;
+  }
+  /*
+  bool up = Keyboard.isPressed(KEY_UP);
+  bool left = Keyboard.isPressed(KEY_LEFT);
+  bool down = Keyboard.isPressed(KEY_RIGHT);
+  bool right = Keyboard.isPressed(KEY_DOWN);
+  if (up) {
+    *deltaY = -10;
+  }
+  if (left) {
+    *deltaX = -10;
+  }
+  if (down) {
+    *deltaX = 10;
+  }
+  if (right) {
+    *deltaY = 10;
+  }
+    */
+}
+
+int Game::check_hit(int attackType) {
+  int damage = 0;
+  // TODO clean up if else structure
+  /*
+  std::cout << "Time since last hit:" << TimeNow() - lastHit << "\n";
+  std::cout << "Hit Cooldown:" << hitCD << "\n";
+  std::cout << "Attack state:" << attack_state << "\n";
+  std::cout << "board[x][y]:" << board[x][y] << "\n";
+  */
+  if (TimeNow() - lastHit > hitCD && attack_state == 2 && board[x][y] == 1) {
+    std::cout << "HIT" << "\n";
+    lastHit = TimeNow();
+    hurt_noise.play();
+    damage = 10;
+  }
+  return damage;
+  /*
   if (TimeNow() - lastHit < hitCD)
     return 0; // hit buffer active
   if (attack_state == 2) {
@@ -124,112 +203,194 @@ int Game::check_hit() {
     } else if (attack_type == 4) {
     }
   }
-  return 0;
+    return 0;
+    */
 }
 
 void Game::draw_map() {
-  // set "bad tile" the type of tile that's bad to stand on.
+  // have to change to get warning and attack type choice one then the other or
+  // set a variable to get the name (either warn or danger)
+  //  set "bad tile" the type of tile that's bad to stand on.
   if (attack_state == 1) {
     bad_tile = FEHImage("images/tile_warn.png");
     attack_noise.play();
   } else if (attack_state == 2) {
     bad_tile = FEHImage("images/tile_danger.png");
-  };
-  if (attack_state > 0 && attack_type == 1) {
-    // alternating rows and columns are dangerous
-    for (int i = min_x; i < max_x; i += 10) {
-      for (int j = min_y; j < max_y; j += 10) {
-        if (((i / 10) % 2 == 0) || ((j / 10) % 2) == 0) {
-          bad_tile.Draw(i, j);
-        } else {
-          tile.Draw(i, j);
-        }
-      }
-    }
-
   }
-  // alternate, but the other way
-  else if (attack_state > 0 && attack_type == 2) {
-    for (int i = min_x; i < max_x; i += increment) {
-      for (int j = min_y; j < max_y; j += increment) {
-        if (((i / 10) % 2 == 1) || ((j / 10) % 2) == 1) {
-          bad_tile.Draw(i, j);
-        } else {
-          tile.Draw(i, j);
-        }
-      }
-    }
-  } else if (attack_state > 0 && attack_type == 3) {
-    for (int i = min_x; i < max_x; i += increment) {
-      for (int j = min_y; j < max_y; j += increment) {
-        if (i > min_x && i < max_x - increment && j > min_y &&
-            j < max_y - increment) {
-          bad_tile.Draw(i, j);
-        } else if (i == max_x - min_x / 2 + increment * 2 ||
-                   j == max_y - min_y / 2 + increment) {
-          bad_tile.Draw(i, j);
-        } else {
-          tile.Draw(i, j);
-        }
-      }
-    }
-  } else {
-    // default
+  switch (attack_type) {
+    // assign attack image based on type
+  }
+  if (attack_state == 0) {
     for (int i = min_x; i < max_x; i += increment) {
       for (int j = min_y; j < max_y; j += increment) {
         tile.Draw(i, j);
       }
     }
+  } else {
+    for (int i = 0; i < BOARD_ROWS; i++) {
+      for (int j = 0; j < BOARD_COLUMNS; j++) {
+        if (board[i][j] == 0) {
+          tile.Draw((i * increment + min_x), (j * increment + min_y));
+        } else {
+          bad_tile.Draw((i * increment + min_x), (j * increment + min_y));
+        }
+      }
+    }
+  }
+  /*
+    if (attack_state > 0 && attack_type == 1) {
+      // alternating rows and columns are dangerous
+      for (int i = min_x; i < max_x; i += 10) {
+        for (int j = min_y; j < max_y; j += 10) {
+          if (((i / 10) % 2 == 0) || ((j / 10) % 2) == 0) {
+            bad_tile.Draw(i, j);
+          } else {
+            tile.Draw(i, j);
+          }
+        }
+      }
+
+    }
+    // alternate, but the other way
+    else if (attack_state > 0 && attack_type == 2) {
+      for (int i = min_x; i < max_x; i += increment) {
+        for (int j = min_y; j < max_y; j += increment) {
+          if (((i / 10) % 2 == 1) || ((j / 10) % 2) == 1) {
+            bad_tile.Draw(i, j);
+          } else {
+            tile.Draw(i, j);
+          }
+        }
+      }
+    } else if (attack_state > 0 && attack_type == 3) {
+      for (int i = min_x; i < max_x; i += increment) {
+        for (int j = min_y; j < max_y; j += increment) {
+          if (i > min_x && i < max_x - increment && j > min_y &&
+              j < max_y - increment) {
+            bad_tile.Draw(i, j);
+          } else if (i == max_x - min_x / 2 + increment * 2 ||
+                     j == max_y - min_y / 2 + increment) {
+            bad_tile.Draw(i, j);
+          } else {
+            tile.Draw(i, j);
+          }
+        }
+      }
+    } else {
+     */
+  // default
+}
+
+void Game::attack(int attackType) {
+  int hashAttack[BOARD_ROWS][BOARD_COLUMNS] = {{0, 1, 0, 1, 0},
+                                               {1, 1, 1, 1, 1},
+                                               {0, 1, 0, 1, 0},
+                                               {1, 1, 1, 1, 1},
+                                               {0, 1, 0, 1, 0}};
+  int gridAttack[BOARD_ROWS][BOARD_COLUMNS] = {{1, 1, 1, 1, 1},
+                                               {1, 0, 1, 0, 1},
+                                               {1, 1, 1, 1, 1},
+                                               {1, 0, 1, 0, 1},
+                                               {1, 1, 1, 1, 1}};
+  int diamondAttack[BOARD_ROWS][BOARD_COLUMNS] = {{0, 0, 1, 0, 0},
+                                                  {0, 1, 1, 1, 0},
+                                                  {1, 1, 1, 1, 1},
+                                                  {0, 1, 1, 1, 0},
+                                                  {0, 0, 1, 0, 0}};
+  int checkerAttack[BOARD_ROWS][BOARD_COLUMNS] = {{0, 1, 0, 1, 0},
+                                                  {1, 0, 1, 0, 1},
+                                                  {0, 1, 0, 1, 0},
+                                                  {1, 0, 1, 0, 1},
+                                                  {0, 1, 0, 1, 0}};
+  int inverseCheckerAttack[BOARD_ROWS][BOARD_COLUMNS] = {{1, 0, 1, 0, 1},
+                                                         {0, 1, 0, 1, 0},
+                                                         {1, 0, 1, 0, 1},
+                                                         {0, 1, 0, 1, 0},
+                                                         {1, 0, 1, 0, 1}};
+  int targetAttack[BOARD_ROWS][BOARD_COLUMNS] = {{1, 1, 1, 1, 1},
+                                                 {1, 1, 1, 1, 1},
+                                                 {1, 1, 0, 1, 1},
+                                                 {1, 1, 1, 1, 1},
+                                                 {1, 1, 1, 1, 1}};
+  switch (attackType) {
+    // static attacks
+  case 0:
+    for (int i = 0; i < BOARD_ROWS; i++) {
+      for (int j = 0; j < BOARD_COLUMNS; j++) {
+        board[i][j] += hashAttack[i][j];
+      }
+    }
+    break;
+  case 1:
+    for (int i = 0; i < BOARD_ROWS; i++) {
+      for (int j = 0; j < BOARD_COLUMNS; j++) {
+        board[i][j] += gridAttack[i][j];
+      }
+    }
+    break;
+  case 2:
+    for (int i = 0; i < BOARD_ROWS; i++) {
+      for (int j = 0; j < BOARD_COLUMNS; j++) {
+        board[i][j] += diamondAttack[i][j];
+      }
+    }
+    break;
+  case 3:
+    for (int i = 0; i < BOARD_ROWS; i++) {
+      for (int j = 0; j < BOARD_COLUMNS; j++) {
+        board[i][j] += checkerAttack[i][j];
+      }
+    }
+    break;
+  case 4:
+    for (int i = 0; i < BOARD_ROWS; i++) {
+      for (int j = 0; j < BOARD_COLUMNS; j++) {
+        board[i][j] += inverseCheckerAttack[i][j];
+      }
+    }
+    break;
+  case 5:
+    for (int i = 0; i < BOARD_ROWS; i++) {
+      for (int j = 0; j < BOARD_COLUMNS; j++) {
+        board[i][j] += targetAttack[i][j];
+      }
+    }
+    break;
+    // moving attacks
   }
 }
 
-void Game::move(char lastKey) {
+void Game::move() {
   float time = TimeNow() - startTime;
   int delta_x = 0, delta_y = 0;
-  if (TimeNow() - lastHit <= hitCD)
+  if (TimeNow() - lastHit <= hitCD) {
     player1 = FEHImage("images/player_hurt.png");
-  else
-    player1 = FEHImage("images/player.png");
-  /*
-if (lastKey == 27) {
-  pause();
-}
-  */
-  if (lastKey == 'w')
-    delta_y = -10;
-  if (lastKey == 'a')
-    delta_x = -10;
-  if (lastKey == 's')
-    delta_y = 10;
-  if (lastKey == 'd')
-    delta_x = 10;
-  if (x + delta_x < max_x && x + delta_x > min_x - increment)
-    x += delta_x;
-
-  if (y + delta_y < max_y && y + delta_y > min_y - increment)
-    y += delta_y;
-  // update visual elements(background, boss sprite, player, sprite, music, etc)
-  if (time < duration / 3) {
-    background1.Draw(0, 0);
-    draw_map();
-    player1.Draw(x, y);
-    boss1.Draw(115, 20);
-  } else if (time < ((2 * duration) / 3)) {
-    background1.Draw(0, 0);
-    draw_map();
-    player1.Draw(x, y);
-    boss1.Draw(115, 20);
   } else {
-    background1.Draw(0, 0);
-    draw_map();
-    player1.Draw(x, y);
-    boss1.Draw(115, 20);
+    player1 = FEHImage("images/player.png");
   }
-  LCD.WriteAt("hp: ", 10, 30);
+  getInput(&delta_x, &delta_y);
+  int pixelX = (x * increment + min_x);
+  int pixelY = (x * increment + min_y);
+  if (pixelX + delta_x < max_x && pixelX + delta_x > min_x - increment) {
+    x += (delta_x / 10);
+  }
+  if (pixelY + delta_y < max_y && pixelY + delta_y > min_y - increment) {
+    y += (delta_y / 10);
+  }
+  refreshScreen(time);
+}
+
+void Game::refreshScreen(float time) {
+  background1.Draw(0, 0);
+  draw_map();
+  player1.Draw((x * increment + min_x), (y * increment + min_y));
+  boss1.Draw(115, 20);
+  LCD.SetFontColor(WHITE);
+  LCD.WriteAt("HP: ", 10, 30);
   LCD.WriteAt(hp, 50, 30);
   float currentTime = TimeNow() - startTime;
   LCD.WriteAt((currentTime), 90, 30);
-  timeSurvived += time;
+  timeSurvived += currentTime;
 }
 
 void Game::gameloop() {
@@ -263,22 +424,21 @@ void Game::gameloop() {
       attack_state++;
       if (attack_state > 2) {
         attack_state = 0;
-        attack_type = Random.RandInt() % 4;
+        attack_type = Random.RandInt() % numAttacks;
       }
     }
+    attack(attack_type);
 
-    char lastKey = 'n';
-    if (Keyboard.areAnyPressed())
-      lastKey = Keyboard.lastChar();
-    move(lastKey);
+    move();
     if (hp <= 0) {
       success = false;
       state = 6;
       return;
     }
-    hp -= check_hit();
+    hp -= check_hit(attack_type);
+    resetBoard();
     LCD.Update();
-    Sleep(0.01);
+    // Sleep(sleepTime);
   }
   success = true;
   wins++;
@@ -311,6 +471,12 @@ void Game::pause() {
 
 // draw menu screen and control button inputs to set state to other screens
 void Game::menuLoop() {
+  for (int i = 0; i < 5; i++) {
+    for (int j = 0; j < 5; j++) {
+      std::cout << board[i][j] << " ";
+    }
+    std::cout << "\n";
+  }
   // Clear screen and draw menu screen
   LCD.Clear();
   menuBackground.Draw(0, 0);

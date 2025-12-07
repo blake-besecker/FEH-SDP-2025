@@ -805,10 +805,10 @@ void Game::gameloop() {
 
     if (hp <= 0) {
       success = false;
-      game_music.pause();
-      lose_music.setVolume(0.7);
-      lose_music.play();
       state = 6;
+      bg_music.pause();
+      lose_music.setVolume(1);
+      lose_music.play();
       return;
     }
 

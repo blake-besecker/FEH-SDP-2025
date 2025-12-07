@@ -9,7 +9,7 @@ FEHSound hurt_noise("sounds/hurt.wav");
 FEHSound attack_noise("sounds/attack.wav");
 FEHSound button_click("sounds/button.wav");
 FEHSound bg_music("sounds/music.wav");
-//attack sounds
+// attack sounds
 FEHSound ice_warn_s("sounds/ice_warn_sound.wav");
 FEHSound ice_danger_s("sounds/ice_danger_sound.wav");
 
@@ -24,22 +24,22 @@ FEHSound life_danger_s("sounds/life_danger_sound.wav");
 
 FEHSound final_warn_s("sounds/final_warn_sound.wav");
 FEHSound final_danger_s("sounds/final_danger_sound.wav");
-//boss reveal sounds(roughly played in this order)
+// boss reveal sounds(roughly played in this order)
 FEHSound evil_final_break("sounds/evil_final_break.wav");
 FEHSound evil_final_reveal("sounds/evil_final_reveal.wav");
 FEHSound evil_soul_reveal("sounds/evil_soul_reveal.wav");
-//todo, need beam charge and beam noises
+// todo, need beam charge and beam noises
 FEHSound beam("sounds/beam.wav");
 FEHSound beam_charge("sounds/beam_charge.wav");
 
-//player sounds
+// player sounds
 FEHSound player_hurt_sound("sounds/player_hurt_sound.wav");
-//music
+// music
 FEHSound menu_music("sounds/menu_music.wav");
 FEHSound game_music("sounds/game_music.wav");
 FEHSound final_music("sounds/final_music.wav");
-//images and sprites
-//tiles
+// images and sprites
+// tiles
 FEHImage tile("images/floor_tile.png");
 
 FEHImage ice_warn("images/floor_ice_warn.png");
@@ -58,14 +58,14 @@ FEHImage final_warn("images/floor_final_warn.png");
 FEHImage final_danger("images/floor_final_danger.png");
 
 FEHImage bad_tile("images/floor_fire_warn.png");
-//backgrounds
+// backgrounds
 FEHImage background1("images/game_bg.png");
 FEHImage background2("images/game_bg_final.png");
 FEHImage menuBackground("images/menubg.png");
 FEHImage difficultyBackground("images/castledoor.png");
 FEHImage loseBackground("images/losebackground.png");
 FEHImage winBackground("images/winbackground.png");
-//boss sprites
+// boss sprites
 FEHImage boss1("images/evil_fire.png");
 FEHImage boss_fire("images/evil_fire.png");
 FEHImage boss_ice("images/evil_ice.png");
@@ -75,7 +75,7 @@ FEHImage boss_reveal_1("images/evil_reveal_1.png");
 FEHImage boss_reveal_2("images/evil_reveal_2.png");
 FEHImage boss_reveal_3("images/evil_reveal_3.png");
 FEHImage boss_final("images/evil_final.png");
-//player sprites
+// player sprites
 FEHImage player1("images/hero_forward.png");
 
 FEHImage hero_forward("images/hero_forward.png");
@@ -84,7 +84,7 @@ FEHImage hero_right("images/hero_right.png");
 FEHImage hero_back("images/hero_back.png");
 
 FEHImage hero_dmg("images/hero_damage.png");
-//sword charge frames
+// sword charge frames
 FEHImage sword1("images/leg_charge_1.png");
 FEHImage sword2("images/leg_charge_2.png");
 FEHImage sword3("images/leg_charge_3.png");
@@ -100,10 +100,11 @@ FEHImage sword12("images/leg_charge_12.png");
 FEHImage sword13("images/leg_charge_13.png");
 FEHImage sword14("images/leg_charge_14.png");
 FEHImage sword15("images/leg_charge_15.png");
-//ending beam frames
+// ending beam frames
 FEHImage beam1("images/leg_beam_1.png");
 FEHImage beam2("images/leg_beam_2.png");
 FEHImage beam3("images/leg_beam_3.png");
+
 // board constants
 const int MAX_X = 200, MIN_X = 100, MAX_Y = 260, MIN_Y = 120, INCREMENT = 20;
 const int BOARD_ROWS = 5, BOARD_COLUMNS = 5;
@@ -130,7 +131,7 @@ private:
   int x, y;
   // boss variables
   int boss_x = 50, boss_y = 15, boss_inc_x = 1, boss_inc_y = 1;
-  int attackState, attackProgress, attackType, numAttacks;
+  int attackState, attackProgress, attackType, framesPerAttack, numAttacks;
   // stats (given declarations because they are kept through multiple runs)
   int wins = 0, runs = 0;
   float timeSurvived = 0.0;
@@ -143,7 +144,7 @@ private:
 public:
   // TODO order functions in a logical way
   Game();
-  void resestVariables();
+  void resetVariables();
   void resetBoard();
   void getInput(int *deltaX, int *deltaY);
   int checkHit(int attackType);
@@ -170,7 +171,7 @@ public:
  */
 int main() {
   Game main;
-  main.resestVariables();
+  main.resetVariables();
   main.resetBoard();
   // state machine active until quit case
   while (main.stateMachine() != -1) {
@@ -189,7 +190,7 @@ Game::Game() {}
  *
  * @author Aaron Bernys
  */
-void Game::resestVariables() {
+void Game::resetVariables() {
   hitCoolDown = 0.9;
   lastHit = TimeNow();
   hp = 30;
@@ -200,8 +201,8 @@ void Game::resestVariables() {
 
   attackState = 0;
   attackProgress = 0;
-  attackType = 3;
-  numAttacks = 6;
+  numAttacks = 9;
+  attackType = Random.RandInt() % numAttacks;
 
   state = 0;
 }
@@ -286,59 +287,59 @@ void Game::drawMap() {
   // set a variable to get the name (either warn or danger)
   //  set "bad tile" the type of tile that's bad to stand on.
   if (attackState == 1) {
-    //switch to warn tiles and play respective attack noise
+    // switch to warn tiles and play respective attack noise
     switch (attackType) {
-      // assign attack image based on type
-      case 1:
+    // assign attack image based on type
+    case 1:
       bad_tile = FEHImage("images/floor_lightning_warn.png");
       ln_danger_s.setVolume(0.7);
       ln_danger_s.play();
       break;
-      case 2:
+    case 2:
       bad_tile = FEHImage("images/floor_ice_warn.png");
       ice_danger_s.setVolume(0.7);
       ice_danger_s.play();
       break;
-      case 3:
+    case 3:
       bad_tile = FEHImage("images/floor_fire_warn.png");
       fire_danger_s.setVolume(0.5);
       fire_danger_s.play();
       break;
-      case 4:
+    case 4:
       bad_tile = FEHImage("images/floor_life_warn.png");
       life_danger_s.setVolume(0.7);
       life_danger_s.play();
       break;
-      case 5:
+    case 5:
       bad_tile = FEHImage("images/floor_fire_warn.png");
       fire_danger_s.setVolume(0.5);
       fire_danger_s.play();
       break;
-      case 6:
+    case 6:
       bad_tile = FEHImage("images/floor_lightning_warn.png");
       ln_danger_s.setVolume(0.7);
       ln_danger_s.play();
       break;
     }
   } else if (attackState == 2) {
-    //switch to danger tiles
+    // switch to danger tiles
     switch (attackType) {
-      case 1:
+    case 1:
       bad_tile = FEHImage("images/floor_lightning_danger.png");
       break;
-      case 2:
+    case 2:
       bad_tile = FEHImage("images/floor_ice_danger.png");
       break;
-      case 3:
+    case 3:
       bad_tile = FEHImage("images/floor_fire_danger.png");
       break;
-      case 4:
+    case 4:
       bad_tile = FEHImage("images/floor_life_danger.png");
       break;
-      case 5:
+    case 5:
       bad_tile = FEHImage("images/floor_fire_danger.png");
       break;
-      case 6:
+    case 6:
       bad_tile = FEHImage("images/floor_lightning_danger.png");
       break;
     }
@@ -353,9 +354,9 @@ void Game::drawMap() {
     for (int i = 0; i < BOARD_ROWS; i++) {
       for (int j = 0; j < BOARD_COLUMNS; j++) {
         if (board[i][j] == 0) {
-          tile.Draw((i * INCREMENT + MIN_X-2), (j * INCREMENT + MIN_Y));
+          tile.Draw((i * INCREMENT + MIN_X - 2), (j * INCREMENT + MIN_Y));
         } else {
-          bad_tile.Draw((i * INCREMENT + MIN_X-1), (j * INCREMENT + MIN_Y));
+          bad_tile.Draw((i * INCREMENT + MIN_X - 1), (j * INCREMENT + MIN_Y));
         }
       }
     }
@@ -443,7 +444,30 @@ void Game::attack(int attackType) {
       }
     }
     break;
-    // moving attacks
+  // moving attacks
+  case 6: {
+    std::cout << "ROW ATTACK" << "\n";
+    int row = Random.RandInt() % BOARD_ROWS;
+    for (int j = 0; j < BOARD_COLUMNS; j++) {
+      board[row][j] = 1;
+    }
+    break;
+  }
+  case 7: {
+    std::cout << "COLUMN ATTACK" << "\n";
+    int column = Random.RandInt() % BOARD_COLUMNS;
+    for (int i = 0; i < BOARD_ROWS; i++) {
+      board[i][column] = 1;
+    }
+    break;
+  }
+  case 8: {
+    std::cout << "SNIPER ATTACK" << "\n";
+    int currentX = x;
+    int currentY = y;
+    board[currentX][currentY] = 1;
+    break;
+  }
   }
 }
 
@@ -480,12 +504,14 @@ void Game::move() {
 void Game::refreshScreen(float time) {
   background1.Draw(0, 0);
   drawMap();
-  player1.Draw((x * INCREMENT + MIN_X-2), (y * INCREMENT + MIN_Y-7));
-  hero_dmg.Draw((x * INCREMENT + MIN_X-4), (y * INCREMENT + MIN_Y-9));
-  if (boss_x == 150 || boss_x == 40) boss_inc_x*=-1;
-  if (boss_y == 40 || boss_y == 0) boss_inc_y*=-1;
-  boss_x+=boss_inc_x;
-  boss_y+=boss_inc_y;
+  player1.Draw((x * INCREMENT + MIN_X - 2), (y * INCREMENT + MIN_Y - 7));
+  hero_dmg.Draw((x * INCREMENT + MIN_X - 4), (y * INCREMENT + MIN_Y - 9));
+  if (boss_x == 150 || boss_x == 40)
+    boss_inc_x *= -1;
+  if (boss_y == 40 || boss_y == 0)
+    boss_inc_y *= -1;
+  boss_x += boss_inc_x;
+  boss_y += boss_inc_y;
   boss1.Draw(boss_x, boss_y);
   LCD.SetFontColor(LIGHTBLUE);
   LCD.WriteAt("MANA: ", 10, 30);
@@ -507,67 +533,72 @@ void Game::gameloop() {
   switch (difficulty) {
   case 1:
     duration = 30;
+    framesPerAttack = 40;
     break;
   case 2:
     duration = 60;
+    framesPerAttack = 35;
     break;
   case 3:
     duration = 90;
+    framesPerAttack = 30;
     break;
   }
 
   startTime = TimeNow();
   bg_music.setVolume(0.6);
   bg_music.play();
+
   while (TimeNow() - startTime <= duration) {
     LCD.Clear();
 
-    // increment attack progress based on elapsed time
-    // cycles every 5 seconds
-    attackProgress++;
-    if (attackProgress >= 40) {
-      attackProgress = 0;
-      attackState++;
-      if (attackState > 2) {
-        attackState = 0;
-        attackType = Random.RandInt() % numAttacks;
-        switch (attackType) {
-          case 1:
-          boss1 = FEHImage("images/evil_lightning.png");
-          break;
-          case 2:
-          boss1 = FEHImage("images/evil_ice.png");
-          break;
-          case 3:
-          boss1 = FEHImage("images/evil_fire.png");
-          break;
-          case 4:
-          boss1 = FEHImage("images/evil_life.png");
-          break;
-          case 5:
-          boss1 = FEHImage("images/evil_fire.png");
-          break;
-          case 6:
-          boss1 = FEHImage("images/evil_lightning.png");
-          break;
-        }
+    if (attackState == 0 && attackProgress == 0) {
+      resetBoard();
+      attackType = Random.RandInt() % numAttacks;
+      attack(attackType);
+      switch (attackType) {
+      case 1:
+        boss1 = FEHImage("images/evil_lightning.png");
+        break;
+      case 2:
+        boss1 = FEHImage("images/evil_ice.png");
+        break;
+      case 3:
+        boss1 = FEHImage("images/evil_fire.png");
+        break;
+      case 4:
+        boss1 = FEHImage("images/evil_life.png");
+        break;
+      case 5:
+        boss1 = FEHImage("images/evil_fire.png");
+        break;
+      case 6:
+        boss1 = FEHImage("images/evil_lightning.png");
+        break;
       }
     }
-    attack(attackType);
-    if (x > 4 || x < 0) {
-      std::cout << "X OUT OF BOUNDS: " << x << "\n";
+
+    attackProgress++;
+
+    if (attackProgress >= framesPerAttack) {
+      attackProgress = 0;
+      attackState++;
+
+      if (attackState > 2) {
+        attackState = 0;
+      }
     }
-    if (y > 4 || y < 0) {
-      std::cout << "Y OUT OF BOUNDS: " << y << "\n";
-    }
+
     move();
+
     if (hp <= 0) {
       success = false;
       state = 6;
       return;
     }
+
     hp -= checkHit(attackType);
-    resetBoard();
+
     LCD.Update();
     // Sleep(sleepTime);
   }
@@ -611,12 +642,6 @@ void Game::pause() {
  * @author Aaron Bernys
  */
 void Game::menuLoop() {
-  for (int i = 0; i < 5; i++) {
-    for (int j = 0; j < 5; j++) {
-      std::cout << board[i][j] << " ";
-    }
-    std::cout << "\n";
-  }
   // Clear screen and draw menu screen
   LCD.Clear();
   menuBackground.Draw(0, 0);
@@ -626,10 +651,10 @@ void Game::menuLoop() {
                          BLUE);
   LCD.SetFontScale(2.0);
   LCD.SetFontColor(PURPLE);
-  LCD.WriteAt("GAME TITLE", 38, 30);
-  LCD.WriteAt("GAME TITLE", 39, 31);
+  LCD.WriteAt("BOSS FIGHT", 38, 30);
+  LCD.WriteAt("BOSS FIGHT", 39, 31);
   LCD.SetFontColor(BLUE);
-  LCD.WriteAt("GAME TITLE", 40, 32);
+  LCD.WriteAt("BOSS FIGHT", 40, 32);
   LCD.SetFontScale(1.0);
   LCD.Update();
 
@@ -717,6 +742,10 @@ void Game::difficultyScreen() {
   // Clear screen and draw end screen
   LCD.Clear();
   difficultyBackground.Draw(0, 0);
+  LCD.SetFontColor(BLUE);
+  LCD.WriteLine("        ");
+  LCD.WriteLine("        ");
+  LCD.WriteLine("        Difficulty");
   FEHIcon::Icon difficultySelect[3];
   char difficulties[3][20] = {"EASY", "MEDIUM", "HARD"};
   FEHIcon::DrawIconArray(difficultySelect, 3, 1, 100, 10, 60, 60, difficulties,
@@ -876,6 +905,7 @@ void Game::guideScreen() {
   LCD.WriteLine("           Guide");
   LCD.SetFontScale(0.5);
   LCD.SetFontColor(WHITE);
+  // TODO Finish controls and add more flavor
   LCD.WriteAt("Use the arrow keys", 185, 110);
   LCD.WriteAt("or wasd to move", 185, 120);
   LCD.WriteAt("around and avoid", 185, 130);
@@ -911,7 +941,7 @@ void Game::guideScreen() {
  * @author Aaron Bernys
  */
 int Game::endScreen() {
-  resestVariables();
+  resetVariables();
   // Clear screen and draw end screen
   LCD.Clear();
   FEHIcon::Icon end[2];

@@ -49,7 +49,7 @@ private:
   // player variables
   int x, y;
   // boss variables
-  int attackState, attackProgress, attackType, numAttacks;
+  int attackState, attackProgress, attackType, framesPerAttack, numAttacks;
   // stats (given declarations because they are kept through multiple runs)
   int wins = 0, runs = 0;
   float timeSurvived = 0.0;
@@ -62,7 +62,7 @@ private:
 public:
   // TODO order functions in a logical way
   Game();
-  void resestVariables();
+  void resetVariables();
   void resetBoard();
   void getInput(int *deltaX, int *deltaY);
   int checkHit(int attackType);
@@ -89,7 +89,7 @@ public:
  */
 int main() {
   Game main;
-  main.resestVariables();
+  main.resetVariables();
   main.resetBoard();
   // state machine active until quit case
   while (main.stateMachine() != -1) {
@@ -108,7 +108,7 @@ Game::Game() {}
  *
  * @author Aaron Bernys
  */
-void Game::resestVariables() {
+void Game::resetVariables() {
   hitCoolDown = 0.9;
   lastHit = TimeNow();
   hp = 30;
@@ -119,8 +119,9 @@ void Game::resestVariables() {
 
   attackState = 0;
   attackProgress = 0;
-  attackType = 3;
-  numAttacks = 6;
+  numAttacks = 9;
+  framesPerAttack = 40;
+  attackType = Random.RandInt() % numAttacks;
 
   state = 0;
 }
@@ -189,6 +190,10 @@ int Game::checkHit(int attackType) {
 }
 
 /**
+ * Add health function to get visual health bar?
+ */
+
+/**
  * Draw board for no attack and for each attack. Draws bad tiles that are
  * warning or active attacks and regular tiles based on the boards value at each
  * position.
@@ -199,6 +204,7 @@ void Game::drawMap() {
   // have to change to get warning and attack type choice one then the other or
   // set a variable to get the name (either warn or danger)
   //  set "bad tile" the type of tile that's bad to stand on.
+
   if (attackState == 1) {
     bad_tile = FEHImage("images/tile_warn.png");
     attack_noise.play();
@@ -269,46 +275,69 @@ void Game::attack(int attackType) {
   case 0:
     for (int i = 0; i < BOARD_ROWS; i++) {
       for (int j = 0; j < BOARD_COLUMNS; j++) {
-        board[i][j] += hashAttack[i][j];
+        board[i][j] = hashAttack[i][j];
       }
     }
     break;
   case 1:
     for (int i = 0; i < BOARD_ROWS; i++) {
       for (int j = 0; j < BOARD_COLUMNS; j++) {
-        board[i][j] += gridAttack[i][j];
+        board[i][j] = gridAttack[i][j];
       }
     }
     break;
   case 2:
     for (int i = 0; i < BOARD_ROWS; i++) {
       for (int j = 0; j < BOARD_COLUMNS; j++) {
-        board[i][j] += diamondAttack[i][j];
+        board[i][j] = diamondAttack[i][j];
       }
     }
     break;
   case 3:
     for (int i = 0; i < BOARD_ROWS; i++) {
       for (int j = 0; j < BOARD_COLUMNS; j++) {
-        board[i][j] += checkerAttack[i][j];
+        board[i][j] = checkerAttack[i][j];
       }
     }
     break;
   case 4:
     for (int i = 0; i < BOARD_ROWS; i++) {
       for (int j = 0; j < BOARD_COLUMNS; j++) {
-        board[i][j] += inverseCheckerAttack[i][j];
+        board[i][j] = inverseCheckerAttack[i][j];
       }
     }
     break;
   case 5:
     for (int i = 0; i < BOARD_ROWS; i++) {
       for (int j = 0; j < BOARD_COLUMNS; j++) {
-        board[i][j] += targetAttack[i][j];
+        board[i][j] = targetAttack[i][j];
       }
     }
     break;
-    // moving attacks
+  // moving attacks
+  case 6: {
+    std::cout << "ROW ATTACK" << "\n";
+    int row = Random.RandInt() % BOARD_ROWS;
+    for (int j = 0; j < BOARD_COLUMNS; j++) {
+      board[row][j] = 1;
+    }
+    break;
+  }
+  case 7: {
+    std::cout << "COLUMN ATTACK" << "\n";
+    int column = Random.RandInt() % BOARD_COLUMNS;
+    for (int i = 0; i < BOARD_ROWS; i++) {
+      board[i][column] = 1;
+    }
+    break;
+  }
+  case 8: {
+    std::cout << "SNIPER ATTACK" << "\n";
+    int currentX = x;
+    int currentY = y;
+    board[currentX][currentY] = 1;
+    break;
+  }
   }
 }
 
@@ -328,10 +357,10 @@ void Game::move() {
   }
   getInput(&delta_x, &delta_y);
 
-  if (x + delta_x > 0 && x + delta_x < 5) {
+  if (x + delta_x >= 0 && x + delta_x < 5) {
     x += delta_x;
   }
-  if (y + delta_y > 0 && y + delta_y < 5) {
+  if (y + delta_y >= 0 && y + delta_y < 5) {
     y += delta_y;
   }
   refreshScreen(time);
@@ -352,7 +381,7 @@ void Game::refreshScreen(float time) {
   LCD.WriteAt(hp, 50, 30);
   float currentTime = TimeNow() - startTime;
   LCD.WriteAt((currentTime), 90, 30);
-  timeSurvived += currentTime;
+  timeSurvived += (TimeNow() - currentTime);
 }
 
 /**
@@ -362,6 +391,7 @@ void Game::refreshScreen(float time) {
  * different
  *
  * @author Blake Besecker
+ * @author Aaron Bernys
  */
 void Game::gameloop() {
   switch (difficulty) {
@@ -370,46 +400,50 @@ void Game::gameloop() {
     break;
   case 2:
     duration = 60;
+    framesPerAttack = 35;
     break;
   case 3:
     duration = 90;
+    framesPerAttack = 30;
     break;
   }
 
   startTime = TimeNow();
   bg_music.setVolume(0.6);
   bg_music.play();
+
   while (TimeNow() - startTime <= duration) {
     LCD.Clear();
 
-    // increment attack progress based on elapsed time
-    // cycles every 5 seconds
+    if (attackState == 0 && attackProgress == 0) {
+      resetBoard();
+      attackType = Random.RandInt() % numAttacks;
+      attack(attackType);
+    }
+
     attackProgress++;
-    if (attackProgress >= 40) {
+
+    if (attackProgress >= framesPerAttack) {
       attackProgress = 0;
       attackState++;
+
       if (attackState > 2) {
         attackState = 0;
-        attackType = Random.RandInt() % numAttacks;
       }
     }
-    attack(attackType);
-    if (x > 4 || x < 0) {
-      std::cout << "X OUT OF BOUNDS: " << x << "\n";
-    }
-    if (y > 4 || y < 0) {
-      std::cout << "Y OUT OF BOUNDS: " << y << "\n";
-    }
+
     move();
+
     if (hp <= 0) {
       success = false;
       state = 6;
       return;
     }
+
     hp -= checkHit(attackType);
-    resetBoard();
+
     LCD.Update();
-    // Sleep(sleepTime);
+    // Sleep(1);
   }
   success = true;
   wins++;
@@ -451,12 +485,6 @@ void Game::pause() {
  * @author Aaron Bernys
  */
 void Game::menuLoop() {
-  for (int i = 0; i < 5; i++) {
-    for (int j = 0; j < 5; j++) {
-      std::cout << board[i][j] << " ";
-    }
-    std::cout << "\n";
-  }
   // Clear screen and draw menu screen
   LCD.Clear();
   menuBackground.Draw(0, 0);
@@ -466,10 +494,10 @@ void Game::menuLoop() {
                          BLUE);
   LCD.SetFontScale(2.0);
   LCD.SetFontColor(PURPLE);
-  LCD.WriteAt("GAME TITLE", 38, 30);
-  LCD.WriteAt("GAME TITLE", 39, 31);
+  LCD.WriteAt("BOSS FIGHT", 38, 30);
+  LCD.WriteAt("BOSS FIGHT", 39, 31);
   LCD.SetFontColor(BLUE);
-  LCD.WriteAt("GAME TITLE", 40, 32);
+  LCD.WriteAt("BOSS FIGHT", 40, 32);
   LCD.SetFontScale(1.0);
   LCD.Update();
 
@@ -557,6 +585,10 @@ void Game::difficultyScreen() {
   // Clear screen and draw end screen
   LCD.Clear();
   difficultyBackground.Draw(0, 0);
+  LCD.SetFontColor(BLUE);
+  LCD.WriteLine("        ");
+  LCD.WriteLine("        ");
+  LCD.WriteLine("        Difficulty");
   FEHIcon::Icon difficultySelect[3];
   char difficulties[3][20] = {"EASY", "MEDIUM", "HARD"};
   FEHIcon::DrawIconArray(difficultySelect, 3, 1, 100, 10, 60, 60, difficulties,
@@ -716,6 +748,7 @@ void Game::guideScreen() {
   LCD.WriteLine("           Guide");
   LCD.SetFontScale(0.5);
   LCD.SetFontColor(WHITE);
+  // TODO Finish controls and add more flavor
   LCD.WriteAt("Use the arrow keys", 185, 110);
   LCD.WriteAt("or wasd to move", 185, 120);
   LCD.WriteAt("around and avoid", 185, 130);
@@ -751,7 +784,7 @@ void Game::guideScreen() {
  * @author Aaron Bernys
  */
 int Game::endScreen() {
-  resestVariables();
+  resetVariables();
   // Clear screen and draw end screen
   LCD.Clear();
   FEHIcon::Icon end[2];

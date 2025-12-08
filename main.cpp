@@ -9,7 +9,9 @@ FEHSound hurt_noise("sounds/hurt.wav");
 FEHSound attack_noise("sounds/attack.wav");
 FEHSound button_click("sounds/button.wav");
 FEHSound bg_music("sounds/music.wav");
-// attack sounds
+FEHSound end_music("sounds/end_music.wav");
+FEHSound lose_music("sounds/lose.wav");
+//attack sounds
 FEHSound ice_warn_s("sounds/ice_warn_sound.wav");
 FEHSound ice_danger_s("sounds/ice_danger_sound.wav");
 
@@ -24,22 +26,21 @@ FEHSound life_danger_s("sounds/life_danger_sound.wav");
 
 FEHSound final_warn_s("sounds/final_warn_sound.wav");
 FEHSound final_danger_s("sounds/final_danger_sound.wav");
-// boss reveal sounds(roughly played in this order)
+//boss reveal sounds(roughly played in this order)
 FEHSound evil_final_break("sounds/evil_final_break.wav");
 FEHSound evil_final_reveal("sounds/evil_final_reveal.wav");
 FEHSound evil_soul_reveal("sounds/evil_soul_reveal.wav");
-// todo, need beam charge and beam noises
+//todo, need beam charge and beam noises
 FEHSound beam("sounds/beam.wav");
-FEHSound beam_charge("sounds/beam_charge.wav");
 
-// player sounds
+//player sounds
 FEHSound player_hurt_sound("sounds/player_hurt_sound.wav");
-// music
+//music
 FEHSound menu_music("sounds/menu_music.wav");
 FEHSound game_music("sounds/game_music.wav");
 FEHSound final_music("sounds/final_music.wav");
-// images and sprites
-// tiles
+//images and sprites
+//tiles
 FEHImage tile("images/floor_tile.png");
 
 FEHImage ice_warn("images/floor_ice_warn.png");
@@ -58,14 +59,14 @@ FEHImage final_warn("images/floor_final_warn.png");
 FEHImage final_danger("images/floor_final_danger.png");
 
 FEHImage bad_tile("images/floor_fire_warn.png");
-// backgrounds
+//backgrounds
 FEHImage background1("images/game_bg.png");
 FEHImage background2("images/game_bg_final.png");
 FEHImage menuBackground("images/menubg.png");
 FEHImage difficultyBackground("images/castledoor.png");
 FEHImage loseBackground("images/losebackground.png");
 FEHImage winBackground("images/winbackground.png");
-// boss sprites
+//boss sprites
 FEHImage boss1("images/evil_fire.png");
 FEHImage boss_fire("images/evil_fire.png");
 FEHImage boss_ice("images/evil_ice.png");
@@ -75,7 +76,7 @@ FEHImage boss_reveal_1("images/evil_reveal_1.png");
 FEHImage boss_reveal_2("images/evil_reveal_2.png");
 FEHImage boss_reveal_3("images/evil_reveal_3.png");
 FEHImage boss_final("images/evil_final.png");
-// player sprites
+//player sprites
 FEHImage player1("images/hero_forward.png");
 
 FEHImage hero_forward("images/hero_forward.png");
@@ -84,7 +85,8 @@ FEHImage hero_right("images/hero_right.png");
 FEHImage hero_back("images/hero_back.png");
 
 FEHImage hero_dmg("images/hero_damage.png");
-// sword charge frames
+//sword charge frames
+FEHImage sword("images/no_damage.png");
 FEHImage sword1("images/leg_charge_1.png");
 FEHImage sword2("images/leg_charge_2.png");
 FEHImage sword3("images/leg_charge_3.png");
@@ -100,11 +102,10 @@ FEHImage sword12("images/leg_charge_12.png");
 FEHImage sword13("images/leg_charge_13.png");
 FEHImage sword14("images/leg_charge_14.png");
 FEHImage sword15("images/leg_charge_15.png");
-// ending beam frames
+//ending beam frames
 FEHImage beam1("images/leg_beam_1.png");
 FEHImage beam2("images/leg_beam_2.png");
 FEHImage beam3("images/leg_beam_3.png");
-
 // board constants
 const int MAX_X = 200, MIN_X = 100, MAX_Y = 260, MIN_Y = 120, INCREMENT = 20;
 const int BOARD_ROWS = 5, BOARD_COLUMNS = 5;
@@ -161,6 +162,8 @@ public:
   void guideScreen();
   int endScreen();
   int stateMachine();
+  void ending();
+  void drawSword(int x, int y);
 };
 
 /**
@@ -193,7 +196,7 @@ Game::Game() {}
 void Game::resetVariables() {
   hitCoolDown = 0.9;
   lastHit = TimeNow();
-  hp = 30;
+  hp = 100;
   damage = 10;
 
   x = 0;
@@ -203,7 +206,9 @@ void Game::resetVariables() {
   attackProgress = 0;
   numAttacks = 9;
   attackType = Random.RandInt() % numAttacks;
-
+  sword = FEHImage("images/no_damage.png");
+  boss_x = 50;
+  boss_y=15;
   state = 0;
 }
 
@@ -270,7 +275,7 @@ int Game::checkHit(int attackType) {
     lastHit = TimeNow();
     player_hurt_sound.setVolume(0.5);
     player_hurt_sound.play();
-    damage = 0;
+    damage = 10;
   }
   return damage;
 }
@@ -293,32 +298,47 @@ void Game::drawMap() {
     case 1:
       bad_tile = FEHImage("images/floor_lightning_warn.png");
       ln_danger_s.setVolume(0.7);
-      ln_danger_s.play();
+      if (TimeNow() - startTime < duration) ln_danger_s.play();
       break;
     case 2:
       bad_tile = FEHImage("images/floor_ice_warn.png");
       ice_danger_s.setVolume(0.7);
-      ice_danger_s.play();
+      if (TimeNow() - startTime < duration) ice_danger_s.play();
       break;
     case 3:
       bad_tile = FEHImage("images/floor_fire_warn.png");
       fire_danger_s.setVolume(0.5);
-      fire_danger_s.play();
+      if (TimeNow() - startTime < duration) fire_danger_s.play();
       break;
     case 4:
       bad_tile = FEHImage("images/floor_life_warn.png");
       life_danger_s.setVolume(0.7);
-      life_danger_s.play();
+      if (TimeNow() - startTime < duration) life_danger_s.play();
       break;
     case 5:
       bad_tile = FEHImage("images/floor_fire_warn.png");
       fire_danger_s.setVolume(0.5);
-      fire_danger_s.play();
+      if (TimeNow() - startTime < duration) fire_danger_s.play();
       break;
     case 6:
       bad_tile = FEHImage("images/floor_lightning_warn.png");
       ln_danger_s.setVolume(0.7);
-      ln_danger_s.play();
+      if (TimeNow() - startTime < duration) ln_danger_s.play();
+      break;
+    case 7:
+      bad_tile = FEHImage("images/floor_ice_warn.png");
+      ice_danger_s.setVolume(0.7);
+      if (TimeNow() - startTime < duration) ice_danger_s.play();
+      break;
+    case 8:
+      bad_tile = FEHImage("images/floor_life_warn.png");
+      life_danger_s.setVolume(0.7);
+      if (TimeNow() - startTime < duration) life_danger_s.play();
+      break;
+    case 9:
+      bad_tile = FEHImage("images/floor_ice_warn.png");
+      ice_danger_s.setVolume(0.7);
+      if (TimeNow() - startTime < duration) ice_danger_s.play();
       break;
     }
   } else if (attackState == 2) {
@@ -342,11 +362,20 @@ void Game::drawMap() {
     case 6:
       bad_tile = FEHImage("images/floor_lightning_danger.png");
       break;
+    case 7:
+      bad_tile = FEHImage("images/floor_ice_danger.png");
+      break;
+    case 8:
+      bad_tile = FEHImage("images/floor_life_danger.png");
+      break;
+    case 9:
+      bad_tile = FEHImage("images/floor_ice_danger.png");
+      break;
     }
   }
   if (attackState == 0) {
     for (int i = MIN_X; i < MAX_X; i += INCREMENT) {
-      for (int j = MIN_Y; j < MAX_Y; j += INCREMENT) {
+      for (int j = MIN_Y; j < MAX_Y-INCREMENT*2; j += INCREMENT) {
         tile.Draw(i, j);
       }
     }
@@ -506,19 +535,202 @@ void Game::refreshScreen(float time) {
   drawMap();
   player1.Draw((x * INCREMENT + MIN_X - 2), (y * INCREMENT + MIN_Y - 7));
   hero_dmg.Draw((x * INCREMENT + MIN_X - 4), (y * INCREMENT + MIN_Y - 9));
-  if (boss_x == 150 || boss_x == 40)
+  if ((TimeNow() - startTime < duration) && (boss_x == 150 || boss_x == 40))
     boss_inc_x *= -1;
-  if (boss_y == 40 || boss_y == 0)
+  if ((TimeNow() - startTime < duration) && (boss_y == 40 || boss_y == 0))
     boss_inc_y *= -1;
   boss_x += boss_inc_x;
   boss_y += boss_inc_y;
-  boss1.Draw(boss_x, boss_y);
-  LCD.SetFontColor(LIGHTBLUE);
-  LCD.WriteAt("MANA: ", 10, 30);
-  LCD.WriteAt(hp, 50, 30);
+  if (TimeNow() - startTime < duration) boss1.Draw(boss_x, boss_y);
+  else boss1.Draw(115, 20);
+  LCD.SetFontColor(DARKBLUE);
+  LCD.SetFontScale(0.5);
+  LCD.WriteAt("MANA: ", 126, 225);
+  LCD.SetFontColor(BLUE);
+  LCD.WriteAt(hp, 156, 225);
   float currentTime = TimeNow() - startTime;
-  LCD.WriteAt((currentTime), 90, 30);
   timeSurvived += currentTime;
+  if (TimeNow() - startTime < duration) drawSword(16, 135);
+  if (TimeNow() - startTime > duration-30 && TimeNow()-startTime < duration-28) {
+      LCD.SetFontColor(GOLD);
+      LCD.SetFontScale(0.5);
+      LCD.WriteAt("i found it",100, 95);
+  }
+}
+
+void Game::drawSword(int x, int y) {
+  if (TimeNow() - startTime > duration-30) sword= FEHImage("images/leg_charge_1.png");
+  if (TimeNow() - startTime > duration-28) sword=FEHImage("images/leg_charge_2.png");
+  if (TimeNow() - startTime > duration-26) sword=FEHImage("images/leg_charge_3.png");
+  if (TimeNow() - startTime > duration-24) sword=FEHImage("images/leg_charge_4.png");
+  if (TimeNow() - startTime > duration-22) sword=FEHImage("images/leg_charge_5.png");
+  if (TimeNow() - startTime > duration-20) sword=FEHImage("images/leg_charge_6.png");
+  if (TimeNow() - startTime > duration-18) sword=FEHImage("images/leg_charge_7.png");
+  if (TimeNow() - startTime > duration-16) sword=FEHImage("images/leg_charge_8.png");
+  if (TimeNow() - startTime > duration-14) sword=FEHImage("images/leg_charge_9.png");
+  if (TimeNow() - startTime > duration-12) sword=FEHImage("images/leg_charge_10.png");
+  if (TimeNow() - startTime > duration-10) sword=FEHImage("images/leg_charge_11.png");
+  if (TimeNow() - startTime > duration-8) sword=FEHImage("images/leg_charge_12.png");
+  if (TimeNow() - startTime > duration-6) sword=FEHImage("images/leg_charge_13.png");
+  if (TimeNow() - startTime > duration-4) sword=FEHImage("images/leg_charge_14.png");
+  if (TimeNow() - startTime > duration-2) sword=FEHImage("images/leg_charge_15.png");
+  sword.Draw(x,y);
+}
+
+void Game::ending() {
+  bg_music.pause();
+  end_music.setVolume(1);
+  end_music.play();
+  refreshScreen(TimeNow()-startTime);
+  drawSword(16,135);
+  LCD.SetFontColor(RED);
+  LCD.SetFontScale(0.5);
+  LCD.WriteAt("oh it charged",100, 95);
+  Sleep(1.0);
+
+  refreshScreen(TimeNow()-startTime);
+  drawSword(17,134);
+  Sleep(0.005);
+
+  refreshScreen(TimeNow()-startTime);
+  drawSword(18,133);
+  Sleep(0.005);
+
+  refreshScreen(TimeNow()-startTime);
+  drawSword(19,132);
+  Sleep(0.005);
+
+  refreshScreen(TimeNow()-startTime);
+  drawSword(20,130);
+  Sleep(0.005);
+
+  refreshScreen(TimeNow()-startTime);
+  drawSword(21,129);
+  Sleep(0.005);
+
+  refreshScreen(TimeNow()-startTime);
+  drawSword(22,128);
+  Sleep(0.005);
+
+  refreshScreen(TimeNow()-startTime);
+  drawSword(23,127);
+  Sleep(0.005);
+
+  refreshScreen(TimeNow()-startTime);
+  drawSword(24,125);
+  Sleep(0.005);
+
+  refreshScreen(TimeNow()-startTime);
+  drawSword(25,123);
+  Sleep(0.005);
+
+  refreshScreen(TimeNow()-startTime);
+  drawSword(26,121);
+  Sleep(0.005);
+
+  refreshScreen(TimeNow()-startTime);
+  drawSword(27,120);
+  Sleep(0.005);
+
+  refreshScreen(TimeNow()-startTime);
+  drawSword(28,118);
+  Sleep(0.005);
+
+  refreshScreen(TimeNow()-startTime);
+  drawSword(29,115);
+  Sleep(0.005);
+
+  refreshScreen(TimeNow()-startTime);
+  drawSword(30,110);
+  Sleep(0.005);
+
+  refreshScreen(TimeNow()-startTime);
+  drawSword(32,105);
+  Sleep(0.005);
+
+  refreshScreen(TimeNow()-startTime);
+  drawSword(33,100);
+  Sleep(0.005);
+
+  refreshScreen(TimeNow()-startTime);
+  drawSword(34,95);
+  Sleep(0.005);
+
+  refreshScreen(TimeNow()-startTime);
+  drawSword(36,90);
+  Sleep(0.005);
+
+  refreshScreen(TimeNow()-startTime);
+  drawSword(37,85);
+  Sleep(0.005);
+
+  refreshScreen(TimeNow()-startTime);
+  drawSword(38,80);
+  Sleep(0.005);
+
+  refreshScreen(TimeNow()-startTime);
+  drawSword(40,75);
+  Sleep(0.005);
+
+  refreshScreen(TimeNow()-startTime);
+  drawSword(41,65);
+  Sleep(0.005);
+
+  refreshScreen(TimeNow()-startTime);
+  drawSword(42,55);
+  Sleep(0.005);
+
+  refreshScreen(TimeNow()-startTime);
+  drawSword(44,50);
+  Sleep(0.005);
+
+  refreshScreen(TimeNow()-startTime);
+  drawSword(45,45);
+  Sleep(0.005);
+
+  refreshScreen(TimeNow()-startTime);
+  drawSword(46,40);
+  Sleep(0.005);
+
+  refreshScreen(TimeNow()-startTime);
+  drawSword(48,35);
+  Sleep(0.005);
+
+  refreshScreen(TimeNow()-startTime);
+  drawSword(46,30);
+  Sleep(0.005);
+
+  refreshScreen(TimeNow()-startTime);
+  drawSword(44,25);
+  Sleep(0.005);
+
+  refreshScreen(TimeNow()-startTime);
+  drawSword(42,20);
+  LCD.SetFontColor(RED);
+  LCD.SetFontScale(0.5);
+  LCD.WriteAt("uh oh",100, 95);
+
+  Sleep(0.5);
+  beam.setVolume(0.5);
+  beam.play();
+  Sleep(1.5);
+  FEHImage("images/leg_beam_1.png").Draw(90,0);
+  Sleep(0.7);
+  FEHImage("images/leg_beam_2.png").Draw(90,0);
+  Sleep(0.7);
+  FEHImage("images/leg_beam_3.png").Draw(90,0);
+  Sleep(0.7);
+  FEHImage("images/leg_beam_1.png").Draw(90,0);
+  Sleep(0.7);
+  FEHImage("images/leg_beam_2.png").Draw(90,0);
+  Sleep(0.7);
+  FEHImage("images/leg_beam_3.png").Draw(90,0);
+  Sleep(0.7);
+  FEHImage("images/leg_beam_1.png").Draw(90,0);
+  Sleep(0.7);
+  FEHImage("images/leg_beam_2.png").Draw(90,0);
+  Sleep(0.7);
+  beam.pause();
 }
 
 /**
@@ -578,7 +790,7 @@ void Game::gameloop() {
       }
     }
 
-    attackProgress++;
+    if (TimeNow() - startTime < duration) attackProgress++;
 
     if (attackProgress >= framesPerAttack) {
       attackProgress = 0;
@@ -594,6 +806,9 @@ void Game::gameloop() {
     if (hp <= 0) {
       success = false;
       state = 6;
+      bg_music.pause();
+      lose_music.setVolume(1);
+      lose_music.play();
       return;
     }
 
@@ -604,6 +819,7 @@ void Game::gameloop() {
   }
   success = true;
   wins++;
+  ending();
   state = 6;
 }
 
@@ -949,13 +1165,15 @@ int Game::endScreen() {
   if (success) {
     winBackground.Draw(0, 0);
     LCD.SetFontColor(GREEN);
+    LCD.SetFontScale(1);
     LCD.WriteAt("YOU WIN", 20, 20);
   } else {
     loseBackground.Draw(40, 0);
     LCD.SetFontColor(RED);
+    LCD.SetFontScale(1);
     LCD.WriteAt("YOU DIED", 20, 20);
   }
-  FEHIcon::DrawIconArray(end, 2, 1, 140, 10, 10, 200, endLabels, PURPLE, BLUE);
+  FEHIcon::DrawIconArray(end, 2, 1, 140, 5, 10, 200, endLabels, PURPLE, BLUE);
   LCD.Update();
 
   // Wait for touch and select button under cursor

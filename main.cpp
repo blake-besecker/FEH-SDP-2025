@@ -84,6 +84,10 @@ const int TARGET_FPS = 244;
 const float FRAME_TIME = 1.0 / TARGET_FPS;
 
 /**
+ * improvements
+ *
+ */
+/**
  * Game class that holds most variables for the game like the board, player
  * position, attacks, and state. This allows for most functions to not have
  * parameters as all important variables are class level.
@@ -213,7 +217,6 @@ bool Game::getInput(int *deltaX, int *deltaY) {
     *deltaX = 1;
     break;
   case 27:
-    std::cout << "PRESSED ESC" << "\n";
     if (!escToggle) {
       paused = true;
     }
@@ -268,42 +271,42 @@ void Game::attack(int attackType) {
   case 0:
     for (int i = 0; i < BOARD_ROWS; i++) {
       for (int j = 0; j < BOARD_COLUMNS; j++) {
-        board[i][j] += hashAttack[i][j];
+        board[i][j] = hashAttack[i][j];
       }
     }
     break;
   case 1:
     for (int i = 0; i < BOARD_ROWS; i++) {
       for (int j = 0; j < BOARD_COLUMNS; j++) {
-        board[i][j] += gridAttack[i][j];
+        board[i][j] = gridAttack[i][j];
       }
     }
     break;
   case 2:
     for (int i = 0; i < BOARD_ROWS; i++) {
       for (int j = 0; j < BOARD_COLUMNS; j++) {
-        board[i][j] += diamondAttack[i][j];
+        board[i][j] = diamondAttack[i][j];
       }
     }
     break;
   case 3:
     for (int i = 0; i < BOARD_ROWS; i++) {
       for (int j = 0; j < BOARD_COLUMNS; j++) {
-        board[i][j] += checkerAttack[i][j];
+        board[i][j] = checkerAttack[i][j];
       }
     }
     break;
   case 4:
     for (int i = 0; i < BOARD_ROWS; i++) {
       for (int j = 0; j < BOARD_COLUMNS; j++) {
-        board[i][j] += inverseCheckerAttack[i][j];
+        board[i][j] = inverseCheckerAttack[i][j];
       }
     }
     break;
   case 5:
     for (int i = 0; i < BOARD_ROWS; i++) {
       for (int j = 0; j < BOARD_COLUMNS; j++) {
-        board[i][j] += targetAttack[i][j];
+        board[i][j] = targetAttack[i][j];
       }
     }
     break;
@@ -329,8 +332,8 @@ void Game::attack(int attackType) {
     break;
   }
   case 9: {
-    int row = Random.RandInt() % BOARD_ROWS - 1;
-    int column = Random.RandInt() % BOARD_COLUMNS - 1;
+    int row = Random.RandInt() % (BOARD_ROWS - 1);
+    int column = Random.RandInt() % (BOARD_COLUMNS - 1);
     for (int i = 0; i < BOARD_ROWS; i++) {
       board[i][column] = 1;
       board[i][column + 1] = 1;
@@ -1013,13 +1016,13 @@ void Game::guideScreen() {
   LCD.WriteLine("           Guide");
   LCD.SetFontScale(0.5);
   LCD.SetFontColor(WHITE);
-  LCD.WriteAt("Use wasd to move around", 175, 110);
-  LCD.WriteAt("the grid and avoid the", 175, 120);
-  LCD.WriteAt("attacks to survive", 175, 130);
-  LCD.WriteAt("against the wizard.", 175, 140);
-  LCD.WriteAt("Press ESC on the main", 175, 150);
-  LCD.WriteAt("menu to quit or in the", 175, 160);
-  LCD.WriteAt("game to pause", 175, 170);
+  LCD.WriteAt("Use the w, a, s, and d keys", 175, 110);
+  LCD.WriteAt(" to move around the grid and", 175, 120);
+  LCD.WriteAt("avoid the attacks to survive", 175, 130);
+  LCD.WriteAt("against the wizard. Avoid the", 175, 140);
+  LCD.WriteAt("warning tiles before they turn.", 175, 150);
+  LCD.WriteAt("Press ESC on the main menu to", 175, 160);
+  LCD.WriteAt("quit or in the game to pause.", 175, 170);
   LCD.SetFontScale(1.0);
   LCD.Update();
 
@@ -1053,7 +1056,7 @@ int Game::endScreen() {
   // Clear screen and draw end screen
   LCD.Clear();
   FEHIcon::Icon end[2];
-  char endLabels[2][20] = {"RESTART", "QUIT"};
+  char endLabels[2][20] = {"MENU", "QUIT"};
   if (success) {
     winBackground.Draw(0, 0);
     LCD.SetFontColor(GREEN);
